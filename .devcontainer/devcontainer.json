@@ -1,0 +1,73 @@
+{
+  "name": "Digital Twin Lab",
+  // Base image is STILL pinned BY DIGEST (audit 8.1) so every prebuild
+  // and rebuild resolves to the same bytes — the digest now lives in
+  // .devcontainer/Dockerfile, which additionally strips the stale Yarn
+  // APT source that otherwise fails the desktop-lite Feature install and
+  // drops the codespace into an Alpine recovery container. Re-resolve
+  // the digest deliberately when bumping, never implicitly.
+  "build": {
+    "dockerfile": "Dockerfile",
+    // no COPY in the Dockerfile, so the small .devcontainer dir is a
+    // sufficient (and much faster) build context than the repo root
+    "context": "."
+  },
+  "features": {
+    // feature version pinned explicitly (was the floating major ':1')
+    "ghcr.io/devcontainers/features/desktop-lite:1.2.10": {
+      "password": "dtlab",
+      "webPort": "6080",
+      "vncPort": "5901"
+    }
+  },
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "Lab Desktop (KEEP PRIVATE — password printed in setup log)",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    },
+    // 9222 is the Chrome DevTools Protocol port the lab browser listens
+    // on (DTLAB_CDP_PORT) and that Hermes attaches to. It is forwarded
+    // automatically the moment the browser starts, so it was previously
+    // reaching students undeclared and unlabelled. CDP is TOTAL control
+    // of the browser — read any page, extract cookies, drive navigation —
+    // on a profile logged into the student's own amazon.in account, so it
+    // warrants the same treatment as 6080. Pinned private here rather
+    // than left to the auto-forward default; silent because nobody needs
+    // to open it in a browser.
+    "9222": {
+      "label": "Agent browser CDP (KEEP PRIVATE — full control of the lab browser)",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    }
+  },
+  // TEMPORARY (7 Sept 2026): the final roster and counterbalance.csv do
+  // not exist yet, and setup.sh's counterbalance gate blocks the WHOLE
+  // Codespace build on that file's mere presence -- before a student
+  // ever reaches the questionnaire, let alone a counterbalanced run.
+  // This override only relaxes THAT gate, for setup only. It does NOT
+  // set DTLAB_ALLOW_UNPINNED -- the Hermes installer checksum is real
+  // and stays fully enforced. REMOVE this block the moment
+  // counterbalance.csv is generated from the final roster
+  // (tools/make_counterbalance.py) and committed -- a real run must
+  // never proceed without genuine, randomized per-student assignment.
+  "containerEnv": {
+    "DTLAB_ALLOW_NO_COUNTERBALANCE": "1"
+  },
+  "onCreateCommand": "bash .devcontainer/setup.sh onCreate",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

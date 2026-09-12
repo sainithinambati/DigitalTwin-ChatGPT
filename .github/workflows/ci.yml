@@ -1,0 +1,65 @@
+name: kit-ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      # actions pinned by commit SHA (audit 8.1): a moved tag must never
+      # change what runs in CI. SHAs resolved 2026-07-26:
+      # checkout v4.2.2, setup-python v5.3.0.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        # ruff pinned: 0.16 changed the default rule set mid-course once
+        # already. ruff.toml at the repo root makes the rule selection
+        # explicit; the pin keeps local and CI byte-identical. Bump both
+        # together, deliberately. shellcheck-py pinned for the same
+        # reason: a silent lint-rule change must never turn the kit red
+        # (or green) by itself mid-course.
+        run: pip install "ruff==0.16.0" "shellcheck-py==0.11.0.1"
+
+      - name: shellcheck (all shell scripts)
+        run: |
+          shellcheck provisioning/provision.sh \
+                     provisioning/student_start.sh \
+                     provisioning/host_check.sh \
+                     .devcontainer/setup.sh \
+                     tests/simulate_submission.sh \
+                     tests/test_start_flow.sh \
+                     tools/dtlab_browser.sh
+
+      - name: ruff (all Python)
+        run: ruff check tools/ questionnaire/ tests/ data-pipeline/
+
+      - name: python compile check
+        run: python -m compileall -q tools questionnaire tests data-pipeline
+
+      - name: doc-checker (links, stale terms, instrument-source refs)
+        run: python tests/check_docs.py
+
+      - name: instrument lockstep test (N1/N3)
+        run: python tests/test_instrument_lockstep.py
+
+      - name: dry-run safety tools (PII, orders, token cost)
+        run: python tests/test_dryrun_tools.py
+
+      - name: submission regression harness (sandboxed HOME)
+        run: bash tests/simulate_submission.sh
+
+      - name: student_start state-machine walk (sandboxed HOME)
+        run: bash tests/test_start_flow.sh
+
+      - name: cohort analysis report (synthetic zips)
+        # pinned like ruff: an analyzer dependency drifting mid-course
+        # must be a deliberate bump, not a surprise on push day
+        run: |
+          pip install "pandas==2.3.1" "plotly==6.2.0" "scipy==1.16.0"
+          python tests/test_analyze_cohort.py
