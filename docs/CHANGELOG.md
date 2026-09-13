@@ -98,6 +98,10 @@ Bandit reported no medium/high findings, and `pip-audit` reported no known
 vulnerabilities in the exact pinned Python packages. Ruff, Python compilation,
 the documentation checker, instrument lockstep, dry-run tools, and cohort
 analysis passed locally; the Linux shell suites are re-run by GitHub Actions.
+The first post-push run passed but warned that its official checkout and Python
+setup actions still targeted deprecated Node 20; their immutable pins were
+updated to the current Node 24 releases (`checkout` v7.0.1 and `setup-python`
+v7.0.0), then the final CI suite was run again.
 
 ### 2026-09-14 — Direct OpenAI API migration
 
