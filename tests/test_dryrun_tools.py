@@ -504,7 +504,7 @@ class TokenCaptureTests(unittest.TestCase):
                "cache_write": 70648, "reasoning": 0}
         cost, parts = capture_tokens.compute_cost(acc, (1.00, 5.00))
 
-        self.assertAlmostEqual(cost, 0.1479, places=4)
+        self.assertAlmostEqual(cost, 0.1656, places=4)
         # cache dominates: the naive input+output figure is a small slice
         naive = round(parts["input"] + parts["output"], 4)
         self.assertAlmostEqual(naive, 0.0200, places=4)

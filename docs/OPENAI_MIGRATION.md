@@ -20,6 +20,11 @@ routes through OpenRouter rather than directly to OpenAI. Hermes sends
 model traffic through OpenAI's Responses API. The kit does not set
 temperature, `top_p`, or other sampling overrides.
 
+The generated Hermes configuration pins `api_mode: codex_responses`.
+`dtlab-start` also clears any inherited `OPENAI_BASE_URL`, because Hermes
+honors that variable and this kit must send first-party keys only to
+`https://api.openai.com/v1`.
+
 `dtlab-start` keeps the existing Digital Twin safeguards:
 
 - a fresh `HERMES_HOME` and configuration for every run;
@@ -38,8 +43,18 @@ fall back to a default model. Its fail-closed repair remains intact.
 Set `OPENAI_API_KEY` in the runtime environment. `dtlab-start` prompts
 with hidden input, verifies the credential using Bearer authentication
 against `GET https://api.openai.com/v1/models`, and writes it only to the
-student's permission-restricted `~/.dtlab_env`. Never add a key to
+student's permission-restricted `~/.dtlab_env`. The launcher parses that
+file as a single assignment rather than executing it as shell code, rejects
+symlinks, and passes the validation header to curl over stdin so the key is
+not present in curl's command-line arguments. The key is exported only to the
+launcher/Hermes process and is not sourced globally from `.bashrc`. Never add a key to
 `dtlab_config.env` or any tracked file.
+
+Cost capture uses the published per-model rates, including cached input at
+0.1x and prompt-cache writes at 1.25x the uncached input rate. OpenAI's
+long-context surcharge applies per request above 272K input tokens; Hermes's
+stored run totals are aggregated and cannot reliably identify those requests,
+so `token_usage.json` remains an estimate rather than a billing statement.
 
 Provisioning installs `openai==2.24.0`, the exact core OpenAI SDK version
 pinned by Hermes v0.20.0. A live end-to-end model call still requires a
@@ -48,4 +63,3 @@ limits.
 
 OpenAI's current API data-control details are documented in
 [Data controls in the OpenAI platform](https://developers.openai.com/api/docs/guides/your-data).
-

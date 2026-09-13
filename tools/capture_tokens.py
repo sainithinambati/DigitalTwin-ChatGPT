@@ -29,8 +29,7 @@ from pathlib import Path
 
 # USD per million tokens from the official OpenAI model pages, verified
 # 2026-09-14. (input, output). Cached input is priced below from the same
-# pages. If an older Hermes record exposes a cache-write counter, it is
-# conservatively priced as ordinary uncached input.
+# pages. Prompt-cache writes are billed at 1.25x the uncached input rate.
 PRICES = {
     "gpt-5.6-terra": (2.00, 12.00),
     "gpt-6-astra": (10.00, 50.00),
@@ -42,12 +41,15 @@ PRICES = {
 # and ~71k cache writes, and only the 72 were charged. T-21 item 12 sets
 # the per-key cap and validates the ~$20 spend guidance off this number,
 # so the understatement mattered.
-# OpenAI cached input is 0.1x for both configured models. OpenAI does not
-# publish a separate cache-write price for these models, so any legacy
-# cache-write-shaped usage is charged at the full input rate.
+# OpenAI cached input is 0.1x and cache writes are 1.25x the base input
+# rate for both configured models.
 CACHE_READ_MULT = 0.10
-CACHE_WRITE_MULT = 1.00
-CACHE_WRITE_PRICING_ASSUMED = "ordinary uncached input rate (1.0x)"
+CACHE_WRITE_MULT = 1.25
+CACHE_WRITE_PRICING_BASIS = "official cache-write rate (1.25x input)"
+LONG_CONTEXT_NOTE = (
+    "not included: Hermes stores aggregate run counters, not per-request "
+    "input totals needed to identify requests above 272K tokens"
+)
 
 # Token counts appear under several key names depending on where in the
 # session file they were written; accept any of them rather than assuming
@@ -292,7 +294,12 @@ def main():
                             + acc["cache_read"] + acc["cache_write"]),
         "usd_estimate": cost,
         "usd_breakdown": cost_parts,
-        "cache_write_pricing_assumed": CACHE_WRITE_PRICING_ASSUMED,
+        # Keep the former key for downstream evidence readers while making the
+        # authoritative basis explicit.
+        "cache_write_pricing_assumed": CACHE_WRITE_PRICING_BASIS,
+        "cache_write_pricing_basis": CACHE_WRITE_PRICING_BASIS,
+        "long_context_surcharge_included": False,
+        "long_context_surcharge_note": LONG_CONTEXT_NOTE,
         "per_model_usage": per_model,
         "usage_records_found": acc["records"],
         "files_scanned": acc["files"],

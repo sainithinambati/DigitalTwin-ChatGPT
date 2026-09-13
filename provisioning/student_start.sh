@@ -203,6 +203,12 @@ pin_gate() {  # $1 = tier -> sets MODEL_ID, or exits 1 (fail closed)
     echo -e "DTLAB_ALLOW_UNPINNED=1 for a throwaway test build.${NC}"
     exit 1
   fi
+  if [[ ! "$MODEL_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; then
+    echo -e "${RED}ERROR: the configured model ID contains unsupported"
+    echo -e "characters. Use the exact OpenAI API model ID from"
+    echo -e "dtlab_config.env; no run state was written.${NC}"
+    exit 1
+  fi
 }
 
 make_hermes_home() {  # $1 = home dir, $2 = SOUL variant file, $3 = model id
@@ -274,12 +280,58 @@ else
 fi
 echo "=============================================="
 
-# 1. OpenAI API key. Stored ONLY in ~/.dtlab_env (chmod 600), sourced from
-#    .bashrc via one idempotent line. Never echoed, never in shell history,
+# This kit intentionally uses OpenAI's first-party endpoint. In the pinned
+# Hermes release, the shorter provider name "openai" is an OpenRouter alias.
+# Fail closed if a stale or edited config would silently route elsewhere.
+if [ "${DTLAB_PROVIDER:-openai-api}" != "openai-api" ]; then
+  echo -e "${RED}ERROR: DTLAB_PROVIDER must be 'openai-api' for this kit."
+  echo -e "The configured value is '${DTLAB_PROVIDER:-<unset>}'. Tell a TA;"
+  echo -e "nothing was started and no credential was read.${NC}"
+  exit 1
+fi
+
+# 1. OpenAI API key. Stored ONLY in ~/.dtlab_env (chmod 600). This launcher
+#    parses the file as data and exports the key only to itself and Hermes; it
+#    is not sourced globally from .bashrc. Never echoed, never in shell history,
 #    never typed while the screen recorder could be running.
 ENVFILE="$HOME/.dtlab_env"
-# shellcheck source=/dev/null
-[ -f "$ENVFILE" ] && . "$ENVFILE"
+if [ -L "$ENVFILE" ] || { [ -e "$ENVFILE" ] && [ ! -f "$ENVFILE" ]; }; then
+  echo -e "${RED}Refusing unsafe credential path $ENVFILE (it must be a"
+  echo -e "regular file, never a symlink). Remove it and re-run dtlab-start.${NC}"
+  exit 1
+fi
+if [ -f "$ENVFILE" ]; then
+  chmod 600 "$ENVFILE" || {
+    echo -e "${RED}Could not restrict $ENVFILE to owner-only access.${NC}"
+    exit 1
+  }
+  mapfile -t DTLAB_ENV_LINES < "$ENVFILE"
+  if [ "${#DTLAB_ENV_LINES[@]}" -ne 1 ]; then
+    echo -e "${RED}Refusing malformed $ENVFILE. It must contain exactly one"
+    echo -e "OPENAI_API_KEY assignment and no shell commands. Remove it and"
+    echo -e "re-run dtlab-start.${NC}"
+    exit 1
+  fi
+  if [[ "${DTLAB_ENV_LINES[0]}" =~ ^export[[:space:]]+OPENAI_API_KEY=([A-Za-z0-9._-]+)$ ]]; then
+    export OPENAI_API_KEY="${BASH_REMATCH[1]}"
+  else
+    echo -e "${RED}Refusing malformed $ENVFILE. It must contain exactly one"
+    echo -e "OPENAI_API_KEY assignment and no shell commands. Remove it and"
+    echo -e "re-run dtlab-start.${NC}"
+    exit 1
+  fi
+fi
+
+# Hermes honors OPENAI_BASE_URL. Do not allow an inherited override to send a
+# student's first-party OpenAI credential to a different host.
+unset OPENAI_BASE_URL
+
+if [ -n "${OPENAI_API_KEY:-}" ] &&
+   [[ ! "$OPENAI_API_KEY" =~ ^sk-[A-Za-z0-9._-]{17,}$ ]]; then
+  echo -e "${RED}The configured OPENAI_API_KEY is malformed. Remove"
+  echo -e "$ENVFILE (or fix the inherited variable) and re-run dtlab-start.${NC}"
+  exit 1
+fi
 if [ -z "${OPENAI_API_KEY:-}" ]; then
   echo ""
   echo "  Your OpenAI API key (from YOUR OWN OpenAI API project, created per"
@@ -287,12 +339,16 @@ if [ -z "${OPENAI_API_KEY:-}" ]; then
   echo "  paste. Never paste this key anywhere else; your personal monthly"
   echo "  project budget (set in the Platform dashboard) is your cap."
   read -rsp "  Key (sk-...): " KEY; echo ""
-  if [[ "$KEY" == sk-* ]] && [ "${#KEY}" -ge 20 ]; then
+  if [[ "$KEY" =~ ^sk-[A-Za-z0-9._-]{17,}$ ]]; then
     # minimal live check BEFORE storing: a typo'd or revoked key must
     # fail here, not mid-run on lab day
-    CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 \
-      -H "Authorization: Bearer $KEY" \
-      "https://api.openai.com/v1/models" 2>/dev/null) || CODE=""
+    # Feed the Authorization header through curl's stdin config so the key is
+    # not exposed in the process command line.
+    CODE=$(curl --config - -sS -o /dev/null -w '%{http_code}' --max-time 15 \
+      "https://api.openai.com/v1/models" 2>/dev/null <<CURL_CONFIG
+header = "Authorization: Bearer $KEY"
+CURL_CONFIG
+    ) || CODE=""
     case "$CODE" in
       2*) ok "key verified against the OpenAI API." ;;
       401|403)
@@ -321,14 +377,14 @@ if [ -z "${OPENAI_API_KEY:-}" ]; then
         fi ;;
     esac
     umask 077
-    printf 'export OPENAI_API_KEY=%q\n' "$KEY" > "$ENVFILE"
-    chmod 600 "$ENVFILE"
+    ENV_TMP=$(mktemp "${ENVFILE}.tmp.XXXXXX") || exit 1
+    chmod 600 "$ENV_TMP"
+    if ! printf 'export OPENAI_API_KEY=%s\n' "$KEY" > "$ENV_TMP"; then
+      rm -f "$ENV_TMP"
+      exit 1
+    fi
+    mv -f -- "$ENV_TMP" "$ENVFILE"
     export OPENAI_API_KEY="$KEY"
-    # shellcheck disable=SC2016  # deliberately unexpanded: the line is
-    # sourced by future shells, not this one
-    grep -qs 'dtlab_env' "$HOME/.bashrc" || \
-      echo '[ -f "$HOME/.dtlab_env" ] && . "$HOME/.dtlab_env"  # dtlab_env' \
-        >> "$HOME/.bashrc"
     ok "API key stored (600-permission env file; your personal spend limit applies)."
   else
     # a malformed key must stop the flow HERE — never continue into the

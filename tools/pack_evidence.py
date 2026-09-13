@@ -290,7 +290,7 @@ GUARD_FIRED_RE = re.compile(r"chrome-extension://[^\s\"'<>]*blocked\.html")
 #      contain the API key or PII seen on amazon.in pages ----
 # OpenAI project/service-account keys begin with sk-. Keep the generic pattern
 # so legacy Anthropic evidence is also scrubbed during a mixed-estate rollout.
-KEY_RE = re.compile(r"sk-[A-Za-z0-9_\-]{8,}")
+KEY_RE = re.compile(r"sk-[A-Za-z0-9_.\-]{8,}")
 KEYLINE_RE = re.compile(
     r"((?:OPENAI|ANTHROPIC)_API_KEY\s*[=:]\s*)[^\s\"']+")
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")

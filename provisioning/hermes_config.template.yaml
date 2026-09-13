@@ -35,6 +35,10 @@
 model:
   default: "{{PROVIDER}}/{{MODEL_ID}}"
   provider: "{{PROVIDER}}"
+  # OpenAI reasoning models with tools use the Responses API in this pinned
+  # Hermes release. Keep this explicit so a stale session/provider setting
+  # cannot fall back to Chat Completions.
+  api_mode: "codex_responses"
 
 auxiliary:
   # Image analysis: vision_analyze tool + browser screenshots

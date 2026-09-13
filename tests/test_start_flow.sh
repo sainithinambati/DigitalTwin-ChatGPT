@@ -120,8 +120,10 @@ check $? 0 "run1 start time recorded"
 grep -q 'MARK-STANDARD' "$HOME/dtlab/runs/run1/hermes_home/SOUL.md"
 check $? 0 "run-1 hermes home carries the condition (standard) SOUL"
 grep -q 'gpt-economy-test' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
-  && grep -q 'openai-api' "$HOME/dtlab/runs/run1/hermes_home/config.yaml"
-check $? 0 "run-1 generated config pins the economy model + provider"
+  && grep -q 'openai-api' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
+  && grep -q 'api_mode: "codex_responses"' \
+       "$HOME/dtlab/runs/run1/hermes_home/config.yaml"
+check $? 0 "run-1 config pins the economy model, provider, and Responses API"
 check "$(find "$HOME/dtlab/runs/run1/hermes_home" -mindepth 1 \
            -exec basename {} \; | sort | tr '\n' ' ')" \
       "SOUL.md config.yaml " "fresh run home holds ONLY SOUL.md + config.yaml"
@@ -559,6 +561,13 @@ echo "[17] B16.3: API key — malformed exits at once; live check gates storage"
 mkenv 0
 rm -f "$HOME/.dtlab_env"
 mkdir -p "$HOME/bin"
+# A credential file is data, not a startup-script injection point.
+printf 'export OPENAI_API_KEY=sk-proj-test0000000000000000000000\ntouch %s\n' \
+  "$HOME/envfile-command-ran" > "$HOME/.dtlab_env"
+rc=$(run '')
+check "$rc" 1 "multi-line credential file is rejected without execution"
+[ ! -e "$HOME/envfile-command-ran" ]; check $? 0 "credential file commands never run"
+rm -f "$HOME/.dtlab_env"
 printf '#!/usr/bin/env bash\nprintf 200\n' > "$HOME/bin/curl"
 chmod +x "$HOME/bin/curl"
 rc=$(run 'garbage-key\n' PATH="$HOME/bin:$PATH")
@@ -573,17 +582,22 @@ grep -q "rm ~/.dtlab_env" "$HOME/last_out.txt"
 check $? 0 "reset path printed"
 [ ! -f "$HOME/.dtlab_env" ]; check $? 0 "rejected key never stored"
 # shellcheck disable=SC2016  # literal variables belong to the generated stub
-printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$HOME/curl_args"\nprintf 200\n' > "$HOME/bin/curl"
-rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\ny\ny\n\n' PATH="$HOME/bin:$PATH")
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$HOME/curl_args"\nprintf "%%s\\n" "${OPENAI_BASE_URL-unset}" > "$HOME/curl_base"\ncat > "$HOME/curl_config"\nprintf 200\n' > "$HOME/bin/curl"
+rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\ny\ny\n\n' \
+  PATH="$HOME/bin:$PATH" OPENAI_BASE_URL='https://attacker.invalid/v1')
 check "$rc" 0 "verified key stores and the flow continues"
 grep -q "key verified" "$HOME/last_out.txt"
 check $? 0 "verification reported"
 grep -q "sk-proj-" "$HOME/.dtlab_env"
 check $? 0 "key stored after verification"
+[ ! -f "$HOME/.bashrc" ] || ! grep -q 'dtlab_env' "$HOME/.bashrc"
+check $? 0 "credential file is not globally sourced from .bashrc"
 grep -q 'https://api.openai.com/v1/models' "$HOME/curl_args" \
-  && grep -q 'Authorization: Bearer sk-proj-' "$HOME/curl_args" \
+  && ! grep -q 'sk-proj-' "$HOME/curl_args" \
+  && grep -q 'Authorization: Bearer sk-proj-' "$HOME/curl_config" \
+  && grep -q '^unset$' "$HOME/curl_base" \
   && ! grep -q 'x-api-key\|anthropic-version' "$HOME/curl_args"
-check $? 0 "credential probe uses the OpenAI endpoint and Bearer auth"
+check $? 0 "probe is first-party, ignores base-URL injection, and hides key from argv"
 guard; rm -rf "${HOME:?}/bin"
 
 echo "[18] B16.4: mid-week sandbox fallback stamps PER-RUN, not the whole zip"

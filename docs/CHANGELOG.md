@@ -81,6 +81,24 @@ plan is `COURSE_PLAN_1WEEK.md`.
 Append every kit change and every observed deviation from the docs
 here, newest first, dated, with the files touched and the suites re-run.
 
+### 2026-09-14 — OpenAI configuration and credential hardening
+
+Re-validated the exact model IDs, Responses API requirement, pricing, and
+Hermes `openai-api` configuration against the official OpenAI documentation
+and the pinned Hermes source. The generated config now pins
+`api_mode: codex_responses`; the launcher rejects any non-first-party provider,
+clears inherited `OPENAI_BASE_URL`, parses its one-line credential file without
+executing it or sourcing it globally from `.bashrc`, rejects
+symlinks/malformed files, and keeps the key out of curl's command-line
+arguments. Evidence redaction now also covers dots in key-shaped
+tokens. Cache-write accounting was corrected from 1.0x to OpenAI's published
+1.25x input rate, with the per-request long-context limitation documented.
+
+Bandit reported no medium/high findings, and `pip-audit` reported no known
+vulnerabilities in the exact pinned Python packages. Ruff, Python compilation,
+the documentation checker, instrument lockstep, dry-run tools, and cohort
+analysis passed locally; the Linux shell suites are re-run by GitHub Actions.
+
 ### 2026-09-14 — Direct OpenAI API migration
 
 Replaced the Anthropic integration with Hermes's direct `openai-api`

@@ -1774,7 +1774,7 @@ echo "[56] token_usage.json is staged and summarized in the manifest"
 mkenv_4run
 cat > "$HOME/dtlab/runs/run1/token_usage.json" <<'JSON'
 {"model":"gpt-5.6-terra","usage_source":"state.db",
- "billable_tokens":647011,"reasoning_tokens":0,"usd_estimate":0.2958}
+ "billable_tokens":647011,"reasoning_tokens":0,"usd_estimate":0.3391}
 JSON
 python3 "$PACK" >/dev/null 2>&1
 check $? 0 "pack with a run's token_usage.json present exits 0"
@@ -1782,14 +1782,14 @@ python3 - <<'PY2'; check $? 0 "token_usage.json staged in the zip and summarized
 import json, zipfile, os, sys
 z = zipfile.ZipFile(os.path.expanduser('~/dtlab/DT2026-999_evidence.zip'))
 staged = json.loads(z.read('DT2026-999/run1/token_usage.json'))
-assert staged['usd_estimate'] == 0.2958, staged
+assert staged['usd_estimate'] == 0.3391, staged
 m = json.loads(z.read('DT2026-999/manifest.json'))
 tu = m['token_usage_by_run']['run1']
 assert tu['model'] == 'gpt-5.6-terra', tu
 assert tu['usage_source'] == 'state.db', tu
 assert tu['billable_tokens'] == 647011, tu
 assert tu['reasoning_tokens'] == 0, tu
-assert tu['usd_estimate'] == 0.2958, tu
+assert tu['usd_estimate'] == 0.3391, tu
 # run2/3/4 have no token_usage.json: warned, not blocking
 assert 'run2' not in m['token_usage_by_run']
 assert m['validation_issues'] == [], m['validation_issues']
