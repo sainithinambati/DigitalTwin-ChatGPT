@@ -2,7 +2,7 @@
 
 Welcome. This repo is the complete kit for the 1-week, 161-student
 (two sections: 80 mornings + 81 afternoons, 3h/day for 5 days)
-digital-twin experiment (Hermes Agent + Claude API + amazon.in). It
+digital-twin experiment (Hermes Agent + OpenAI API + amazon.in). It
 serves three audiences from one commit — see README > "Who uses what"
 for the role map (students: six commands, ignore the repo; you: this
 file; instructor: design docs + analysis).
@@ -219,11 +219,12 @@ concrete machinery, so you recognize it when you see it:
       own scores become the classification of record.
 - [ ] **Token/cost benchmark across model tiers (during the dry run).**
       Run at least one full single-category task end-to-end under each
-      of four configurations — **Haiku-class with and without extended
-      thinking, Sonnet-class with and without extended thinking** — and
+      of four configurations — **`gpt-5.6-terra` at reasoning effort
+      `none` and `medium`, and `gpt-6-astra` at reasoning effort `low`
+      and `medium`** — and
       repeat over 2–3 different categories so the numbers average out.
-      Record per run: input/output/cache tokens and $ cost (Claude
-      Console usage view per key), wall-clock time, and task success.
+      Record per run: input/output/cache tokens and $ cost (OpenAI
+      Platform usage view per project), wall-clock time, and task success.
       Multiply out to tasks-per-student × N=161 (×2 if the ablation
       factor is on) → this sets the recommended personal spend limit,
       validates the ~$20
@@ -235,7 +236,7 @@ concrete machinery, so you recognize it when you see it:
       repository) once the Form is frozen.
 - [x] **Pin the installers** (see "Updating installer pins" below) —
       resolved 28 Aug 2026: Hermes v2026.8.3 installer + exact release
-      commit, uv 0.12.7, Playwright 1.62.0, and Anthropic 0.122.0.
+      commit, uv 0.12.7, Playwright 1.62.0, and OpenAI 2.24.0.
       The exact values are enforced by `tests/test_start_flow.sh`.
 - [ ] Build those pins from scratch on both routes, then enable
       **Codespaces prebuilds** on the template repo so all students
@@ -255,12 +256,12 @@ concrete machinery, so you recognize it when you see it:
       (SELECTORS dict is the single patch point).
 - [ ] **API-account setup checklist (Monday homework — assigned in
       Session 6, due Monday 22:00):** publish the
-      LMS checklist — create your own Anthropic Console account, complete
-      billing with a small credit purchase, set a personal **monthly
-      spend limit of ~$20** in Console settings, generate one API key,
+      LMS checklist — create your own OpenAI Platform account/project,
+      complete billing with a small credit purchase, set a project **monthly
+      spend limit of ~$20** in project settings, generate one API key,
       store it only where dtlab-start puts it. Verify completion against
       the roster at Tuesday's pre-flight (checkpoint 2); hold 2–3 course-owned
-      spare keys for failed setups. Rate limits are per account, so ~80
+      spare keys for failed setups. Rate limits are per project, so ~80
       concurrent agents share nothing.
 - [ ] Build the LMS assignment sheet BEFORE the lab week: pseudonym,
       section, self-selected pair, per-day grounding order (Thursday
@@ -282,7 +283,7 @@ concrete machinery, so you recognize it when you see it:
       (`https://codespaces.new/dringel/DTShopAgent?quickstart=1` —
       publish only after the repo is public and prebuilds are green)
       plus the two account prerequisites (free github.com account;
-      own Anthropic account per the Monday checklist item above);
+      own OpenAI API account/project per the Monday checklist item above);
       (2) the week at a glance (which command on which day, from
       COURSE_PLAN_1WEEK.md); (3) the Browsing-History pause steps
       (PERSONALIZATION_PROTOCOL.md Layer 1, verbatim); (4) the
@@ -373,8 +374,9 @@ section are the only things you hand back up.
    home (adjust the packer's collection subpath if needed). (c) Record
    all three findings in the CHANGELOG T-21 list.
 2. **Pin the exact model IDs.** Confirm the two tier models with the
-   instructor (economy = current Claude Haiku class, frontier = current
-   Claude Sonnet class), then enter the exact IDs in `dtlab_config.env`
+   instructor (economy = `gpt-5.6-terra`, frontier = `gpt-6-astra`;
+   both IDs verified in the official OpenAI model catalog on
+   2026-09-14), then enter the exact IDs in `dtlab_config.env`
    (`DTLAB_MODEL_ECONOMY`, `DTLAB_MODEL_FRONTIER`) — the launcher
    refuses to run while they read `PIN-AT-DRYRUN`. Record a pricing
    note (per-MTok prices + date) in the CHANGELOG while you're there;
@@ -436,7 +438,7 @@ needs:
 
 - **Three twins, one tier.** `persona` (questionnaire + history),
   `ablated` (history only), `nohistory` (questionnaire only). All on
-  Haiku class. The 2x2's model-tier factor is retired. Packs record
+  `gpt-5.6-terra`. The 2x2's model-tier factor is retired. Packs record
   `design: "3cond"`.
 - **The history effect is deliberately NOT pre-registered** (Ringel,
   10 Sept). H1b stays exploratory and must be reported that way.
@@ -470,7 +472,7 @@ The TA runs the machine; these calls stay with the instructor:
    independent research-ethics review (no university IRB attaches
    to this engagement); (c) German/EU privacy advice
    on the controller structure, the India→Germany transfer, and the
-   DPDP phase-in; (d) confirmation of the actual Anthropic API
+   DPDP phase-in; (d) confirmation of the actual OpenAI API
    data-retention terms for the account tier; (e) a terms-of-service
    assessment for the Amazon interaction; (f) the outcomes entered
    into the bracketed fields of `docs/CONSENT_AND_DATA_USE.md` and
@@ -500,7 +502,7 @@ incomplete future update fails on purpose. To re-pin after a release:
 3. For Hermes, also pin the exact release commit passed through
    `--commit ... --force-commit`; a checksum-pinned installer that clones
    floating `main` is not a reproducible Hermes install. Pin
-   `PLAYWRIGHT_PIN` and `ANTHROPIC_PIN` to the versions you dry-ran.
+   `PLAYWRIGHT_PIN` and `OPENAI_PIN` to the versions you dry-ran.
 4. Update the exact-value assertions in `tests/test_start_flow.sh` in the
    same change; differing values between the two provisioners must fail.
 5. Rebuild a fresh codespace/VM from scratch and re-run the dry run.

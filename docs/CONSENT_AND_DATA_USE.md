@@ -35,7 +35,7 @@ happens, where your data goes, and what you are agreeing to.
 - The agent never sees your password (you log in yourself). Your API
   key is stored only in a protected file in your lab environment and is
   used for exactly one purpose: authenticating your own agent's
-  requests to Anthropic's API from your own account.
+  requests to OpenAI's API from your own account.
 - **Account risk, stated plainly:** automated activity on a personal
   amazon.in account sits in tension with Amazon's conditions of use.
   The lab minimizes the risk (you log in manually, the agent works at
@@ -53,7 +53,7 @@ of systems and people that receive any of it.
 
 | Recipient | What they receive | Why | Notes on retention |
 |---|---|---|---|
-| **Anthropic** (Claude API) | During each agent run: the agent's instructions, your persona file, your purchase profile, the task list, and the content of the amazon.in pages the agent reads | This is what makes your agent run; requests are authenticated with your own API key from your own Anthropic account | Anthropic's standard API terms allow retention of API inputs/outputs for a limited period (up to ~30 days under its published policy) for abuse monitoring; [confirmed arrangement set at term start] |
+| **OpenAI** (Responses API) | During each agent run: the agent's instructions, your persona file, your purchase profile, the task list, and the content of the amazon.in pages the agent reads | This is what makes your agent run; requests are authenticated with your own API key from your own OpenAI API project | OpenAI states that API data is not used for training unless the customer opts in; default abuse-monitoring logs may retain customer content for up to 30 days, and Responses API application state may also be retained for at least 30 days unless applicable retention controls change that behavior. Confirm the course project's actual controls at term start in [OpenAI's data-controls documentation](https://developers.openai.com/api/docs/guides/your-data). |
 | **Google** (Forms/Sheets) | Your questionnaire answers, the consent checkboxes, and your institutional email address | The email is collected once for submission integrity (one response per student); it is deleted from the research copy before analysis | Response sheet held in the instructor's account; email column removed from every research export |
 | **GitHub / Microsoft** (Codespaces) | The contents of your lab environment while it exists | Your lab machine is a cloud container | Deleted when your codespace is deleted |
 | **Amazon** | The browsing and cart activity of the human session and the agent runs, on your logged-in account | The shopping itself | Governed by your existing Amazon relationship; the lab pauses Browsing History daily |
@@ -64,7 +64,7 @@ of systems and people that receive any of it.
 
 The evidence zip itself leaves your lab environment when you upload it to the LMS.
 As the table shows, the *live* operation of the
-lab additionally involves Anthropic, Google, GitHub, and Amazon; no
+lab additionally involves OpenAI, Google, GitHub, and Amazon; no
 other recipients exist.
 
 Screen recordings are **optional** and off by default. If you choose to

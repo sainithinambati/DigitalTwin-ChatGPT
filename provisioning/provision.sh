@@ -6,7 +6,7 @@
 #
 # After provisioning, a student only needs to:
 #   1. Import the VM, log in (student / <course password>)
-#   2. Paste their Claude API key when prompted by student_start.sh
+#   2. Paste their OpenAI API key when prompted by student_start.sh
 #   3. Drop persona_survey.md (from make_persona.py) into ~/dtlab/workspace
 #      (purchase_profile.md is written by the one-time bootstrap session
 #      dtlab-start runs before run 1, then frozen)
@@ -26,7 +26,8 @@ HERMES_INSTALLER_URL="https://raw.githubusercontent.com/NousResearch/hermes-agen
 HERMES_INSTALLER_SHA256="45f589461248c7a6ec3aecd7522a69dd49c5c8dbf4798ba1296af5c0c5e7ccd3"
 HERMES_COMMIT="3c27eb6234bf91b8ceee9e9071591b31e9b148cb"
 PLAYWRIGHT_PIN="==1.62.0"
-ANTHROPIC_PIN="==0.122.0"
+# Matches the OpenAI SDK pinned by Hermes Agent v0.20.0.
+OPENAI_PIN="==2.24.0"
 
 # Flags passed to the Hermes installer. These are load-bearing, not
 # cosmetic — see the "Hermes Agent" step below. Keep .devcontainer/setup.sh
@@ -136,31 +137,26 @@ else
   exit 1
 fi
 
-# The Anthropic provider SDK is NOT installed by the Hermes installer
-# when --skip-setup is passed: the interactive wizard is where a
-# provider is chosen and its package pulled in. Skipping that wizard is
-# mandatory here (it deadlocks a lifecycle hook, see above), so the
-# provider package must be installed explicitly -- otherwise Hermes
-# starts, connects, and only then dies with "Failed to initialize
-# agent: The 'anthropic' package is required for the Anthropic
-# provider." Anthropic is the only provider this course uses.
+# OpenAI is a core dependency of the pinned Hermes release. Install the
+# exact upstream pin explicitly after the non-interactive installer so a
+# partial or stale environment cannot reach lab day without the SDK used
+# by Hermes' direct OpenAI Responses transport.
 #
 # The venv is built by uv and has neither pip nor ensurepip, so uv is
 # the only way in. Both paths are derived, not hard-coded: the launcher
 # wrapper names its own interpreter, and uv ships inside the Hermes
 # tree at ~/.hermes/bin/uv.
-# 0.122.0 is the exact SDK present for the successful 18 Aug live
-# bootstrap. Do not float across the SDK's 1.x migration at freeze.
+# Keep this pin in lockstep with the pinned Hermes release's pyproject.toml.
 HERMES_PY="$(sed -n 's|^exec "\([^"]*python\)".*|\1|p' \
              "$HOME/.local/bin/hermes" 2>/dev/null | head -1)"
 HERMES_UV="$HOME/.hermes/bin/uv"
 [ -x "$HERMES_UV" ] || HERMES_UV="$(command -v uv || true)"
 if [ -n "$HERMES_PY" ] && [ -x "$HERMES_PY" ] && [ -n "$HERMES_UV" ]; then
-  "$HERMES_UV" pip install --python "$HERMES_PY" "anthropic$ANTHROPIC_PIN"
-  if "$HERMES_PY" -c "import anthropic" 2>/dev/null; then
-    echo "anthropic SDK present in the Hermes venv"
+  "$HERMES_UV" pip install --python "$HERMES_PY" "openai$OPENAI_PIN"
+  if "$HERMES_PY" -c "import openai" 2>/dev/null; then
+    echo "OpenAI SDK present in the Hermes venv"
   else
-    echo "ERROR: the Anthropic provider SDK did not install into the"
+    echo "ERROR: the OpenAI SDK did not install into the"
     echo "Hermes venv ($HERMES_PY). Hermes would start but fail to"
     echo "initialize the agent. Tell a TA."
     exit 1
@@ -169,7 +165,7 @@ else
   echo "ERROR: could not locate the Hermes interpreter or uv."
   echo "  interpreter: ${HERMES_PY:-<not found>}"
   echo "  uv:          ${HERMES_UV:-<not found>}"
-  echo "Hermes cannot use the Anthropic provider without its SDK."
+  echo "Hermes cannot use the direct OpenAI provider without its SDK."
   exit 1
 fi
 

@@ -30,8 +30,8 @@ CAPSTONE Assignment (Individual, due by end of the course) — **Agentic AI for 
 
 **Lab Project: Your Digital Twin Goes Shopping**
 Runs: Sessions 6–10 · Setup assigned in Session 6 (consent,
-consumer-profile questionnaire, Anthropic account with API key and
-spend limit — due Monday 22:00); the lab environment is built in class.
+consumer-profile questionnaire, OpenAI API account/project with API key and
+project spend limit — due Monday 22:00); the lab environment is built in class.
 
 Configure an autonomous AI agent as *your* consumer digital twin —
 grounded in your 115-item consumer profile and your real amazon.in

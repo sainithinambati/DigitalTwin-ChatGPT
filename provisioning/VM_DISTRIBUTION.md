@@ -42,9 +42,11 @@ route — see the banner above.)
    "Emulate"). 4 vCPU / 8 GB / 40 GB each.
 2. Create user `student` with the course password; enable auto-login.
 3. Copy the `dt-lab` kit into the VM and run `provisioning/provision.sh`.
-4. Run `hermes setup` interactively: provider = Anthropic, API key left
-   blank, browser automation = local mode. Do one `/browser connect` smoke
-   test so first-run downloads are cached in the image.
+4. Do not run `hermes setup`: `dtlab-start` writes and verifies each
+   run's direct-OpenAI configuration, and each student supplies their own
+   key at runtime. Do one `/browser connect` smoke test with a disposable
+   test environment so first-run downloads are cached in the image; remove
+   that environment and any test key before sealing the VM.
 5. Clear shell history, delete any test keys, `sudo apt clean`.
 6. Export: VirtualBox → File > Export Appliance → `dtlab-amd64.ova`
    (~6–9 GB). UTM → right-click VM > Share → `dtlab-arm64.utm.zip`.

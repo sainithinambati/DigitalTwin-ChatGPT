@@ -5,7 +5,7 @@
 **Daniel M. Ringel** · [ringel.AI](https://www.ringel.ai)
 
 Course + experiment kit: 161 MBA students (two sections: 80 mornings,
-81 afternoons) each configure a Hermes agent (Claude API backend) as
+81 afternoons) each configure a Hermes agent (OpenAI API backend) as
 their consumer digital twin, shop a standardized task set themselves,
 then send the twin to shop it THREE times — once per grounding
 condition, on one fixed model tier — and compare (assessment-blinded),
@@ -30,7 +30,7 @@ instrument or `dtlab_config.env` (CI runs both, plus shellcheck/ruff, on
 every push). Never commit student data or keys (`.gitignore` covers the
 obvious paths).
 
-Turnkey package for the MBA module: Hermes Agent + Claude API + amazon.in,
+Turnkey package for the MBA module: Hermes Agent + OpenAI API + amazon.in,
 with a research-grade data pipeline.
 
 > **START HERE for the 161-student lab week: `COURSE_PLAN_1WEEK.md`.**
@@ -57,8 +57,8 @@ computer with one click.
 **Tonight — before class:**
 
 1. **Three accounts, if you don't already have them:** [GitHub](https://github.com/join) ·
-   [Anthropic Console](https://console.anthropic.com) (create an API key,
-   and set a spending limit while you're there — it's your own money) ·
+   [OpenAI Platform](https://platform.openai.com) (create a project API key,
+   and set a project spending limit while you're there — it's your own money) ·
    your own real Amazon India account (its order history is half of what
    makes your agent yours).
 2. **Copy the lab:** on this page, click green **Code** → **Codespaces**
@@ -67,7 +67,7 @@ computer with one click.
    before typing anything.
 3. **Add your key:** the first time you run `dtlab-start` (below), it
    asks for your API key directly — input is hidden as you paste, and it
-   is checked against Anthropic before it's saved. Never paste your key
+   is checked against OpenAI before it's saved. Never paste your key
    anywhere else.
 4. **Amazon prep, inside the Lab Desktop** (Ports tab → port `6080` →
    Open in Browser): sign in, then Accounts & Lists → Browsing History →
@@ -400,16 +400,17 @@ via the CSV's `constraint` column → a `[CONSTRAINT]` flag in the persona
 file → SOUL.md's constraints-always-win rule, so no item codes are ever
 hard-coded anywhere.
 
-## Claude API configuration
+## OpenAI API configuration
 
-- **Each student uses their own Anthropic account and API key** (created
-  as Monday-evening homework per the LMS setup checklist: Console
-  account, billing,
-  a small credit purchase, a personal **monthly spend limit of ~$20** set
-  in Console settings, then one API key). Rate limits are therefore
-  per-student — ~80 concurrent agents share nothing, and one agent's
-  ~4–12 requests/minute sits far below any per-account limit; prompt-cache
-  reads do not count toward input-token limits on current models.
+The exact model/provider mapping and migration notes are documented in
+[`docs/OPENAI_MIGRATION.md`](docs/OPENAI_MIGRATION.md).
+
+- **Each student uses their own OpenAI API account, project, and API key**
+  (created as Monday-evening homework per the LMS setup checklist:
+  Platform account, billing, a small credit purchase, a project **monthly
+  spend limit of ~$20**, then one project API key). Rate limits are therefore
+  per-student project — ~80 concurrent agents share nothing. Verify the
+  selected models' live project limits during the T-21 dry run.
 - Provider and model are configured **per run, not interactively**:
   `dtlab-start` generates each run's `$HERMES_HOME/config.yaml` from
   `provisioning/hermes_config.template.yaml` with the pinned model ID
@@ -417,31 +418,29 @@ hard-coded anywhere.
   no `hermes setup` provider step is relied on. `dtlab-start` collects
   each student's
   key on first run — silently (input hidden, so it can never appear in a
-  screen recording), verified against the Claude API (fail-closed; a
+  screen recording), verified against the OpenAI API model-list endpoint
+  with Bearer authentication (fail-closed; a
   network failure needs a typed TA `OVERRIDE`, which is recorded),
   stored only in a 600-permission `~/.dtlab_env` file,
   and redacted from any packed log by `dtlab-pack`. A one-time
   confirmation that the ~$20 spend limit is set is recorded and packed.
-- **Model policy: Anthropic models only, all settings at defaults** (no
+- **Model policy: direct OpenAI API models only, all settings at defaults** (no
   temperature or sampling overrides — agent runs are interactive tool-use
-  sessions, not elicitation calls). Budget guidance: a full task-set run
-  is typically well under $1–2 in Sonnet tokens and far less on Haiku;
-  the three runs land around $3–5 per student — the recommended
-  personal spend limit is **$20**. Hermes supports Anthropic prompt
-  caching, which helps because the persona + history are re-read each run
-  (cache reads are also exempt from per-account input-token rate limits).
-  The personal ~$20 spend limit is the cap: it covers all three runs
-  with slack, and the student controls it end to end.
+  sessions, not elicitation calls). Budget guidance must be confirmed in
+  the T-21 dry run with `capture_tokens.py`; the recommended project spend
+  limit is **$20** pending that benchmark. OpenAI prompt caching helps
+  because the persona + history are re-read each run. The student's
+  project spend limit is the hard cap they control end to end.
 - **Model tier is FIXED, not a factor** (plan of record, 7 Sept): every
-  run uses the economy tier (Claude Haiku class). The earlier design
+  run uses the economy tier (`gpt-5.6-terra`). The earlier design
   crossed grounding with an economy/frontier tier factor over two lab
   days; that was retired when the design moved to three grounding
   conditions. The frontier tier survives only as an optional extra run
-  and is in no contrast. The exact pinned model ID is
+  on `gpt-6-astra` and is in no contrast. The exact pinned model ID is
   written into each run's own Hermes configuration by `dtlab-start`
   (which refuses to launch on any mismatch) and recorded per run in
   the manifest (research_protocol.md §1).
-- Students verify their spend limit on their own Claude Console
+- Students verify their project spend limit on their own OpenAI Platform
   **dashboard** during the setup checklist; pre-flight asks for
   confirmation, and cost questions are answered from each student's own
   usage view.
@@ -462,8 +461,9 @@ hard-coded anywhere.
 
 1. Monday (Session 6): GitHub account + codespace created in class;
    that evening's homework (assigned Monday, due 22:00): consent, the
-   115-item Form (~30 min, phone is fine), own Anthropic account + API
-   key + $20 spend limit. Personas are generated centrally overnight.
+   115-item Form (~30 min, phone is fine), own OpenAI API account/project
+   + API key + $20 project spend limit. Personas are generated centrally
+   overnight.
 2. Monday–Tuesday, in class: create/log into GitHub → **Create
    codespace** (~4–6 min first build; instant with prebuilds) → open the
    forwarded **Lab Desktop** port (noVNC; per-codespace password printed
@@ -671,7 +671,9 @@ is pre-baked by `.devcontainer/setup.sh` (Codespaces, primary) or
       (T-21): build, persona generation, `dtlab-shop`, `/browser connect`,
       Bootstrap, one full task, `dtlab-pack` — working the T-21 dry-run
       list at the top of `docs/CHANGELOG.md`
-- [ ] Confirm the student-key model end-to-end: every student's own Anthropic account, one key, ~$20 monthly spend limit (Monday homework); 2–3 course-owned spare keys staged for setup casualties
+- [ ] Confirm the student-key model end-to-end: every student's own OpenAI
+      API account/project, one key, ~$20 monthly project spend limit
+      (Monday homework); 2–3 course-owned spare keys staged for setup casualties
 - [ ] LMS: assignment sheet (pseudonym + per-day grounding order + tier order + pair — one make_counterbalance.py output), evidence upload slot
 - [ ] Synthetic persona pack for opt-outs (fictional Form row — generate
       once, reuse; doubles as the flagged-account sandbox path)
@@ -711,7 +713,7 @@ is pre-baked by `.devcontainer/setup.sh` (Codespaces, primary) or
 ## Troubleshooting (lab week)
 
 - **Wrong or revoked API key** — `dtlab-start` verifies the key against
-  the Claude API before storing it and refuses rejected keys on the
+  the OpenAI API before storing it and refuses rejected keys on the
   spot. If a stale key is already stored (agent runs fail with auth
   errors), reset it and re-enter:
 

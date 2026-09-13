@@ -50,7 +50,7 @@ EXTDIR="$(cd "$(dirname "$0")" && pwd)/checkout_guard_extension"
 # SECURITY NOTE — needs instructor sign-off. --no-sandbox removes
 # Chromium's renderer sandbox. In this lab the browser is logged into a
 # real amazon.in account and, during agent runs, follows links an LLM
-# chose on the live web; the same container holds the student's Anthropic
+# chose on the live web; the same container holds the student's OpenAI
 # key in ~/.dtlab_env. The per-student, disposable container remains the
 # isolation boundary. The flag is applied ONLY where the kernel refuses
 # the namespace sandbox, so the VM route keeps its sandbox intact.

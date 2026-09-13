@@ -136,7 +136,8 @@ def main():
     rendered = expected - len(hidden)
 
     # 7: build_form.gs ID pattern semantically in sync with the config
-    gs = (REPO / "questionnaire" / "build_form.gs").read_text()
+    gs = (REPO / "questionnaire" / "build_form.gs").read_text(
+        encoding="utf-8")
 
     # 7a: the two consent checkboxes (docs/CONSENT_AND_DATA_USE.md >
     # "What you confirm") sit at the top of the Form build — layer 1 of

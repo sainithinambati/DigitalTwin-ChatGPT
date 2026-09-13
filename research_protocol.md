@@ -36,8 +36,8 @@ times: grounding (persona = questionnaire + purchase profile vs. ablated
 = purchase profile only; persona files removed from the agent's
 workspace and quarantined, an ablated SOUL swapped in, and every run
 launched in a fresh per-run Hermes home so no memory or session state
-crosses runs) × model tier (economy / Claude Haiku class vs. frontier /
-Claude Sonnet class). **Tier order is counterbalanced across days at the
+crosses runs) × model tier (economy / GPT-5.6 Terra vs. frontier /
+GPT-6 Astra). **Tier order is counterbalanced across days at the
 participant level** (half of each section runs economy on day 1 and
 frontier on day 2, the other half the reverse, per the counterbalance
 sheet), so the tier contrast is identified separately from the day;
@@ -75,7 +75,7 @@ after every verdict and head-to-head is on file. Consent notes: the
 partner sees the owner's purchase
 profile and picks during runs; ablated runs are blind to CONSTRAINT
 items (harmless under add-to-cart-only; violations become a measured
-outcome). All Anthropic model settings remain at defaults (agent runs
+outcome). All OpenAI model settings remain at defaults (agent runs
 are interactive tool-use sessions, not elicitation calls); the exact
 model ID per run is pinned before the course, written into each run's
 configuration, and recorded in the manifest.
@@ -158,7 +158,7 @@ otherwise infer the wrong intent from §1, which still describes the
 retired 2x2 as the plan of record.
 
 **The design is THREE grounding conditions on one fixed tier.** Every
-run is Claude Haiku class. The three twins are `persona` (questionnaire
+run is `gpt-5.6-terra`. The three twins are `persona` (questionnaire
 + purchase history), `ablated` (purchase history only, questionnaire
 removed from the workspace), and `nohistory` (questionnaire only,
 frozen purchase profile removed from the workspace). Both factors off
@@ -296,12 +296,12 @@ silently understate its denominator.
   payment data, and carrier data never reach the workspace or the dataset.
 - `student_start.sh` refuses to launch if raw export files or PII-named
   files sit in the agent workspace.
-- API keys belong to the students' own Anthropic accounts. Each account
-  carries a personal monthly spend limit (~$20, set during the Monday
+- API keys belong to the students' own OpenAI API projects. Each project
+  carries a monthly spend limit (~$20, set during the Monday
   checklist and confirmed at pre-flight); the key lives only in the
   student's 600-permission env file, is content-redacted from every
   packed artifact by `dtlab-pack`, and the student can delete it from
-  their Console the moment the course ends.
+  their OpenAI Platform project the moment the course ends.
 
 ## 5. Cohort dataset assembly (instructor, after Friday submissions close)
 

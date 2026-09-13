@@ -33,8 +33,8 @@ mkdir -p "$HOME/dtlab/workspace" "$HOME/dtlab/soul" "$HOME/dtlab/quarantine/huma
 # T-21 item 2 before the freeze -- and ten assertions then failed for
 # reasons unrelated to the change being made.
 sed -E -e "s/^DTLAB_PERSONA_FACTOR=.*/DTLAB_PERSONA_FACTOR='$1'/" \
-       -e "s/^DTLAB_MODEL_ECONOMY=.*/DTLAB_MODEL_ECONOMY='claude-eco-test-1'/" \
-       -e "s/^DTLAB_MODEL_FRONTIER=.*/DTLAB_MODEL_FRONTIER='claude-fro-test-1'/" \
+       -e "s/^DTLAB_MODEL_ECONOMY=.*/DTLAB_MODEL_ECONOMY='gpt-economy-test'/" \
+       -e "s/^DTLAB_MODEL_FRONTIER=.*/DTLAB_MODEL_FRONTIER='gpt-frontier-test'/" \
     "$REPO/dtlab_config.env" > "$HOME/dtlab/dtlab_config.env"
 cp "$REPO/tasks_config.csv" "$HOME/dtlab/"
 cp "$REPO/provisioning/hermes_config.template.yaml" "$HOME/dtlab/"
@@ -55,7 +55,7 @@ for i in $(seq 1 113); do echo "- **X$i** q"; done \
 echo "student_id,answer" > "$HOME/dtlab/workspace/persona_survey.csv"
 touch "$HOME/dtlab/quarantine/human/human_picks.csv" \
       "$HOME/dtlab/quarantine/human/human_session.jsonl"
-printf 'export ANTHROPIC_API_KEY=sk-ant-test0000000000000000000000\n' \
+printf 'export OPENAI_API_KEY=sk-proj-test0000000000000000000000\n' \
   > "$HOME/.dtlab_env"
 chmod 600 "$HOME/.dtlab_env"
 # consent acknowledgment already given (the gate has its own case [22])
@@ -119,8 +119,8 @@ check $? 0 ".bak of the original comparison kept"
 check $? 0 "run1 start time recorded"
 grep -q 'MARK-STANDARD' "$HOME/dtlab/runs/run1/hermes_home/SOUL.md"
 check $? 0 "run-1 hermes home carries the condition (standard) SOUL"
-grep -q 'claude-eco-test-1' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
-  && grep -q 'anthropic' "$HOME/dtlab/runs/run1/hermes_home/config.yaml"
+grep -q 'gpt-economy-test' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
+  && grep -q 'openai-api' "$HOME/dtlab/runs/run1/hermes_home/config.yaml"
 check $? 0 "run-1 generated config pins the economy model + provider"
 check "$(find "$HOME/dtlab/runs/run1/hermes_home" -mindepth 1 \
            -exec basename {} \; | sort | tr '\n' ' ')" \
@@ -130,7 +130,7 @@ check "$(cat "$HOME/dtlab/runs/run1/soul_sha256.txt")" "$H1" \
       "per-run SOUL hash = hash of the file Hermes actually loads"
 [ -s "$HOME/dtlab/runs/run1/config_sha256.txt" ]
 check $? 0 "per-run config hash recorded"
-check "$(cat "$HOME/dtlab/runs/run1/model_id.txt")" "claude-eco-test-1" \
+check "$(cat "$HOME/dtlab/runs/run1/model_id.txt")" "gpt-economy-test" \
       "run-1 model id recorded"
 
 echo "[4] crash-resume: answering N stays on run 1, archives nothing"
@@ -161,7 +161,7 @@ grep -q 'MARK-ABLATED' "$HOME/dtlab/workspace/SOUL.md"
 check $? 0 "ablated SOUL in workspace"
 grep -q 'MARK-ABLATED' "$HOME/dtlab/runs/run2/hermes_home/SOUL.md"
 check $? 0 "run-2 hermes home carries the ABLATED SOUL"
-grep -q 'claude-eco-test-1' "$HOME/dtlab/runs/run2/hermes_home/config.yaml"
+grep -q 'gpt-economy-test' "$HOME/dtlab/runs/run2/hermes_home/config.yaml"
 check $? 0 "run-2 config still pins the economy model"
 
 echo "[6] run 3 needs the day-2 order and the Friday re-pause gate"
@@ -187,9 +187,9 @@ check "$rc" 0 "exit 0 with typed EARLY"
 check "$(cat "$HOME/dtlab/runs/run3/condition.txt")" "ablated" "run3 = ablated (day-2 NP_FIRST)"
 check "$(cat "$HOME/dtlab/runs/run3/tier.txt")" "frontier" "run3 = frontier tier"
 check "$(cat "$HOME/dtlab/tier.txt")" "frontier" "legacy tier.txt now frontier"
-grep -q 'claude-fro-test-1' "$HOME/dtlab/runs/run3/hermes_home/config.yaml"
+grep -q 'gpt-frontier-test' "$HOME/dtlab/runs/run3/hermes_home/config.yaml"
 check $? 0 "run-3 config pins the frontier model"
-check "$(cat "$HOME/dtlab/runs/run3/model_id.txt")" "claude-fro-test-1" \
+check "$(cat "$HOME/dtlab/runs/run3/model_id.txt")" "gpt-frontier-test" \
       "run-3 model id recorded"
 [ -f "$HOME/dtlab/runs/run2/decision_log.md" ]
 check $? 0 "run-2 log archived before run 3"
@@ -207,7 +207,7 @@ check $? 0 "persona files restored to the workspace"
 grep -q 'MARK-STANDARD' "$HOME/dtlab/workspace/SOUL.md"
 check $? 0 "standard SOUL for run 4"
 grep -q 'MARK-STANDARD' "$HOME/dtlab/runs/run4/hermes_home/SOUL.md" \
-  && grep -q 'claude-fro-test-1' "$HOME/dtlab/runs/run4/hermes_home/config.yaml"
+  && grep -q 'gpt-frontier-test' "$HOME/dtlab/runs/run4/hermes_home/config.yaml"
 check $? 0 "run-4 hermes home: standard SOUL + frontier model"
 
 echo "[9] all four runs done: quitting points at the next steps"
@@ -567,18 +567,23 @@ grep -q "does not look like" "$HOME/last_out.txt"
 check $? 0 "clear malformed-key message"
 [ ! -f "$HOME/.dtlab_env" ]; check $? 0 "nothing stored on malformed input"
 printf '#!/usr/bin/env bash\nprintf 401\n' > "$HOME/bin/curl"
-rc=$(run 'sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXX\n' PATH="$HOME/bin:$PATH")
+rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\n' PATH="$HOME/bin:$PATH")
 check "$rc" 1 "API-rejected key exits 1"
 grep -q "rm ~/.dtlab_env" "$HOME/last_out.txt"
 check $? 0 "reset path printed"
 [ ! -f "$HOME/.dtlab_env" ]; check $? 0 "rejected key never stored"
-printf '#!/usr/bin/env bash\nprintf 200\n' > "$HOME/bin/curl"
-rc=$(run 'sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXX\ny\ny\n\n' PATH="$HOME/bin:$PATH")
+# shellcheck disable=SC2016  # literal variables belong to the generated stub
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$HOME/curl_args"\nprintf 200\n' > "$HOME/bin/curl"
+rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\ny\ny\n\n' PATH="$HOME/bin:$PATH")
 check "$rc" 0 "verified key stores and the flow continues"
 grep -q "key verified" "$HOME/last_out.txt"
 check $? 0 "verification reported"
-grep -q "sk-ant-api03" "$HOME/.dtlab_env"
+grep -q "sk-proj-" "$HOME/.dtlab_env"
 check $? 0 "key stored after verification"
+grep -q 'https://api.openai.com/v1/models' "$HOME/curl_args" \
+  && grep -q 'Authorization: Bearer sk-proj-' "$HOME/curl_args" \
+  && ! grep -q 'x-api-key\|anthropic-version' "$HOME/curl_args"
+check $? 0 "credential probe uses the OpenAI endpoint and Bearer auth"
 guard; rm -rf "${HOME:?}/bin"
 
 echo "[18] B16.4: mid-week sandbox fallback stamps PER-RUN, not the whole zip"
@@ -707,7 +712,7 @@ echo "[23] C1.1: unpinned model IDs fail closed before any prompt or state"
 mkenv 1
 # restore the shipped fail-closed placeholders (mkenv pins test dummies);
 # run WITHOUT DTLAB_TEST so the gate is exercised as shipped
-sed "s/DTLAB_MODEL_ECONOMY='claude-eco-test-1'/DTLAB_MODEL_ECONOMY='PIN-AT-DRYRUN'/" \
+sed "s/DTLAB_MODEL_ECONOMY='gpt-economy-test'/DTLAB_MODEL_ECONOMY='PIN-AT-DRYRUN'/" \
     "$HOME/dtlab/dtlab_config.env" > "$HOME/dtlab/cfg.tmp" \
   && mv "$HOME/dtlab/cfg.tmp" "$HOME/dtlab/dtlab_config.env"
 printf 'P_FIRST\neconomy\n' | bash "$START" > "$HOME/last_out.txt" 2>&1
@@ -727,7 +732,7 @@ check "$(cat "$HOME/dtlab/runs/run1/model_id.txt")" "test-model-economy" \
 echo "[24] C1.1: generated-config mismatch fails closed, leaves no run state"
 mkenv 1
 # tampered template: hardcoded model instead of the {{MODEL_ID}} slot
-printf 'model:\n  provider: "anthropic"\n  id: "some-other-model"\n' \
+printf 'model:\n  provider: "openai-api"\n  id: "some-other-model"\n' \
   > "$HOME/dtlab/hermes_config.template.yaml"
 rc=$(run 'P_FIRST\neconomy\ny\ny\n\n')
 check "$rc" 1 "config that does not name the assigned model exits 1"
@@ -842,7 +847,7 @@ grep -q 'MARK-BOOTSTRAP' "$HOME/dtlab/runs/bootstrap/hermes_home/SOUL.md"
 check $? 0 "bootstrap hermes home carries SOUL_bootstrap"
 check "$(cat "$HOME/dtlab/runs/bootstrap/tier.txt")" "economy" \
       "profile writer's tier recorded"
-check "$(cat "$HOME/dtlab/runs/bootstrap/model_id.txt")" "claude-eco-test-1" \
+check "$(cat "$HOME/dtlab/runs/bootstrap/model_id.txt")" "gpt-economy-test" \
       "profile writer's model recorded"
 [ -f "$HOME/dtlab/quarantine/persona_hold/persona_survey.md" ] \
   && [ ! -f "$HOME/dtlab/workspace/persona_survey.md" ]
@@ -958,7 +963,7 @@ rm -f "$HOME/.dtlab_env"
 mkdir -p "$HOME/bin"
 printf '#!/usr/bin/env bash\nexit 7\n' > "$HOME/bin/curl"    # network dead
 chmod +x "$HOME/bin/curl"
-rc=$(run 'sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXX\nnope\n' PATH="$HOME/bin:$PATH")
+rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\nnope\n' PATH="$HOME/bin:$PATH")
 check "$rc" 1 "unverifiable key without OVERRIDE exits 1"
 grep -q "Could not verify the key" "$HOME/last_out.txt"
 check $? 0 "message names the verification failure and the TA override"
@@ -966,10 +971,10 @@ check $? 0 "message names the verification failure and the TA override"
 check $? 0 "nothing stored without the override"
 [ ! -f "$HOME/dtlab/.key_override" ]
 check $? 0 "no override record on refusal"
-rc=$(run 'sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXX\nOVERRIDE\ny\ny\n\n' \
+rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\nOVERRIDE\ny\ny\n\n' \
      PATH="$HOME/bin:$PATH")
 check "$rc" 0 "typed OVERRIDE stores the unverified key and continues"
-grep -q "sk-ant-api03" "$HOME/.dtlab_env"
+grep -q "sk-proj-" "$HOME/.dtlab_env"
 check $? 0 "key stored on override"
 [ -s "$HOME/dtlab/.key_override" ]
 check $? 0 "override recorded with a timestamp (manifest picks it up)"
@@ -978,7 +983,7 @@ mkenv 0
 rm -f "$HOME/dtlab/.spend_limit_ack"
 rc=$(run 'n\n')
 check "$rc" 1 "refusing the spend-limit confirmation exits 1"
-grep -q "Anthropic Console" "$HOME/last_out.txt"
+grep -q "OpenAI Platform" "$HOME/last_out.txt"
 check $? 0 "refusal names where to set the limit"
 [ ! -f "$HOME/dtlab/.spend_limit_ack" ]
 check $? 0 "nothing recorded on refusal"
@@ -1016,9 +1021,9 @@ check $? 0 "empty PLAYWRIGHT_PIN fails both builds (unpinned-gate style)"
 grep -Fq 'PLAYWRIGHT_PIN="==1.62.0"' "$REPO/.devcontainer/setup.sh" \
   && grep -Fq 'PLAYWRIGHT_PIN="==1.62.0"' "$REPO/provisioning/provision.sh"
 check $? 0 "Playwright is frozen identically in both provisioners"
-grep -Fq 'ANTHROPIC_PIN="==0.122.0"' "$REPO/.devcontainer/setup.sh" \
-  && grep -Fq 'ANTHROPIC_PIN="==0.122.0"' "$REPO/provisioning/provision.sh"
-check $? 0 "Anthropic SDK is frozen identically in both provisioners"
+grep -Fq 'OPENAI_PIN="==2.24.0"' "$REPO/.devcontainer/setup.sh" \
+  && grep -Fq 'OPENAI_PIN="==2.24.0"' "$REPO/provisioning/provision.sh"
+check $? 0 "OpenAI SDK is frozen identically in both provisioners"
 grep -Fq 'HERMES_INSTALLER_URL="https://raw.githubusercontent.com/NousResearch/hermes-agent/v2026.8.3/scripts/install.sh"' \
   "$REPO/.devcontainer/setup.sh" \
   && grep -Fq 'HERMES_INSTALLER_URL="https://raw.githubusercontent.com/NousResearch/hermes-agent/v2026.8.3/scripts/install.sh"' \

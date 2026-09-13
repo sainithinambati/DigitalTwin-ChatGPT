@@ -218,12 +218,12 @@ for i in (1, 2, 3, 4):
     d = f"{home}/dtlab/runs/run{i}"
     hh = f"{d}/hermes_home"
     os.makedirs(f"{hh}/sessions", exist_ok=True)
-    model = "claude-eco-test-1" if i <= 2 else "claude-fro-test-1"
+    model = "gpt-economy-test" if i <= 2 else "gpt-frontier-test"
     cond = "persona" if i in (1, 4) else "ablated"
     with open(f"{hh}/SOUL.md", "w") as f:
         f.write(f"# {cond} soul variant\n")
     with open(f"{hh}/config.yaml", "w") as f:
-        f.write(f'model:\n  provider: "anthropic"\n  id: "{model}"\n')
+        f.write(f'model:\n  provider: "openai-api"\n  id: "{model}"\n')
     with open(f"{hh}/sessions/run{i}.jsonl", "w") as f:
         f.write('{"run": %d}\n' % i)
     for name, src in (("soul_sha256.txt", f"{hh}/SOUL.md"),
@@ -277,7 +277,7 @@ python3 "$PACK" 2>&1 | grep -q "Task 2 still contains template placeholders"; ch
 
 echo "[7] content redaction of packed logs"
 mkenv
-printf '{"msg":"key is sk-ant-api03-AAAABBBBCCCCDDDD and email test@example.com, Deliver to Priya"}\n' > "$HOME/.hermes/sessions/s2.jsonl"
+printf '{"msg":"key is sk-proj-AAAABBBBCCCCDDDD and email test@example.com, Deliver to Priya"}\n' > "$HOME/.hermes/sessions/s2.jsonl"
 python3 "$PACK" >/dev/null 2>&1; check $? 0 "redaction does not fail a valid pack"
 python3 - <<'PY'; check $? 0 "key redacted from zip + redaction_report in manifest"
 import json,sys,zipfile,os
@@ -286,7 +286,7 @@ names=[n for n in z.namelist() if 's2.jsonl' in n]
 log=z.read(names[0]).decode()
 man=json.loads(z.read('DT2026-999/manifest.json'))
 rr=man['redaction_report']
-assert 'sk-ant-' not in log and '[REDACTED-API-KEY]' in log, log
+assert 'sk-proj-' not in log and '[REDACTED-API-KEY]' in log, log
 assert 'test@example.com' not in log and '[REDACTED-EMAIL]' in log, log
 entry=[v for k,v in rr.items() if 's2.jsonl' in k][0]
 assert entry['api_keys_redacted']>=1 and entry['pii_flags'].get('emails_redacted',0)>=1
@@ -427,7 +427,7 @@ done
 
 echo "[18] four-run 2x2 happy path (memo fallback; run-4 artifacts adopted)"
 mkenv_4run
-OUT18="$(DTLAB_MODEL_ID_DAY1=claude-haiku-x DTLAB_MODEL_ID_DAY2=claude-sonnet-y python3 "$PACK" 2>&1)"
+OUT18="$(DTLAB_MODEL_ID_DAY1=gpt-terra-x DTLAB_MODEL_ID_DAY2=gpt-astra-y python3 "$PACK" 2>&1)"
 check $? 0 "valid four-run pack exits 0"
 echo "$OUT18" | grep -q "run2: cart/picks mismatch (cart_match=missing"
 check $? 0 "cart cross-check mismatch warns, names the run + verdict"
@@ -453,7 +453,7 @@ assert ab['manipulation_check_cited_codes']=={'run2':[],'run3':[]}
 assert ab['tier_order']=={'day1':'economy','day2':'frontier'}
 assert ab['cart_verified']=={'run1':True,'run2':False,'run3':None,'run4':None}
 assert set(m['contamination_index'])=={'persona_economy','ablated_economy','ablated_frontier','persona_frontier'}
-assert m['environment']['model_id_by_run']=={'run1':'claude-haiku-x','run2':'claude-haiku-x','run3':'claude-sonnet-y','run4':'claude-sonnet-y'}
+assert m['environment']['model_id_by_run']=={'run1':'gpt-terra-x','run2':'gpt-terra-x','run3':'gpt-astra-y','run4':'gpt-astra-y'}
 assert m['transcript_collection']=='legacy_pool'   # no per-run homes here
 assert 'run4/decision_log.md' in m['sha256'] and 'run3/agent_picks.csv' in m['sha256']
 assert 'screenshots/cart_run1.json' in m['sha256']
@@ -654,7 +654,7 @@ cat >> "$HOME/dtlab/workspace/purchase_profile.md" <<'EOF'
 - order confirmation went to priya.sharma@example.in
 - delivery contact +91 9876543210 and alt 9123456789
 EOF
-printf '\nANTHROPIC_API_KEY=sk-ant-api03-STUDENTPASTEDTHIS0000\n' \
+printf '\nOPENAI_API_KEY=sk-proj-STUDENTPASTEDTHIS0000\n' \
   >> "$HOME/dtlab/dtlab_config.env"
 python3 "$PACK" >/dev/null 2>&1; check $? 0 "pack with seeded PII exits 0"
 python3 - <<'PY'; check $? 0 "email/phone/key absent from EVERY text file in the zip; counts in manifest"
@@ -667,7 +667,7 @@ for n in z.namelist():
 text=blob.decode('utf-8','replace')
 assert 'priya.sharma@example.in' not in text
 assert '9876543210' not in text and '9123456789' not in text
-assert 'sk-ant-api03-STUDENTPASTEDTHIS0000' not in text
+assert 'sk-proj-STUDENTPASTEDTHIS0000' not in text
 assert '[REDACTED-EMAIL]' in text and '[REDACTED-PHONE]' in text
 m=json.loads(z.read('DT2026-999/manifest.json'))
 pp=m['redaction_report']['purchase_profile.md']['pii_flags']
@@ -1213,7 +1213,7 @@ for i in (1,2,3,4):
         in z.namelist(), i
     assert f'run{i}/soul_sha256.txt' in m['sha256'], i
 env=m['environment']
-assert env['model_id_by_run']=={'run1':'claude-eco-test-1','run2':'claude-eco-test-1','run3':'claude-fro-test-1','run4':'claude-fro-test-1'}
+assert env['model_id_by_run']=={'run1':'gpt-economy-test','run2':'gpt-economy-test','run3':'gpt-frontier-test','run4':'gpt-frontier-test'}
 assert set(env['context_sha256_by_run'])=={'run1','run2','run3','run4'}
 assert set(env['config_sha256_by_run'])=={'run1','run2','run3','run4'}
 assert m['protocol_tokens_by_run']=={'run1':'persona-v4','run2':'ablated-v4','run3':'ablated-v4','run4':'persona-v4'}
@@ -1306,7 +1306,7 @@ mkdir -p "$HOME/dtlab/runs/bootstrap"
 printf 'PROTOCOL | soul=bootstrap-v1\nprofile written\n' \
   > "$HOME/dtlab/runs/bootstrap/decision_log.md"
 echo economy > "$HOME/dtlab/runs/bootstrap/tier.txt"
-echo claude-eco-test-1 > "$HOME/dtlab/runs/bootstrap/model_id.txt"
+echo gpt-economy-test > "$HOME/dtlab/runs/bootstrap/model_id.txt"
 python3 "$PACK" >/dev/null 2>&1
 check $? 0 "pack with bootstrap record + snapshots exits 0"
 python3 - <<'PY'; check $? 0 "manifest: frozen hash, per-run verification, bootstrap token + files"
@@ -1773,8 +1773,8 @@ echo "[56] token_usage.json is staged and summarized in the manifest"
 # by the packer, so working cost measurement still never reached a pack.
 mkenv_4run
 cat > "$HOME/dtlab/runs/run1/token_usage.json" <<'JSON'
-{"model":"claude-haiku-4-5-20251001","usage_source":"state.db",
- "billable_tokens":647011,"reasoning_tokens":0,"usd_estimate":0.1656}
+{"model":"gpt-5.6-terra","usage_source":"state.db",
+ "billable_tokens":647011,"reasoning_tokens":0,"usd_estimate":0.2958}
 JSON
 python3 "$PACK" >/dev/null 2>&1
 check $? 0 "pack with a run's token_usage.json present exits 0"
@@ -1782,14 +1782,14 @@ python3 - <<'PY2'; check $? 0 "token_usage.json staged in the zip and summarized
 import json, zipfile, os, sys
 z = zipfile.ZipFile(os.path.expanduser('~/dtlab/DT2026-999_evidence.zip'))
 staged = json.loads(z.read('DT2026-999/run1/token_usage.json'))
-assert staged['usd_estimate'] == 0.1656, staged
+assert staged['usd_estimate'] == 0.2958, staged
 m = json.loads(z.read('DT2026-999/manifest.json'))
 tu = m['token_usage_by_run']['run1']
-assert tu['model'] == 'claude-haiku-4-5-20251001', tu
+assert tu['model'] == 'gpt-5.6-terra', tu
 assert tu['usage_source'] == 'state.db', tu
 assert tu['billable_tokens'] == 647011, tu
 assert tu['reasoning_tokens'] == 0, tu
-assert tu['usd_estimate'] == 0.1656, tu
+assert tu['usd_estimate'] == 0.2958, tu
 # run2/3/4 have no token_usage.json: warned, not blocking
 assert 'run2' not in m['token_usage_by_run']
 assert m['validation_issues'] == [], m['validation_issues']

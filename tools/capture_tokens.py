@@ -3,19 +3,16 @@
 
 T-21 item 12 asks for a token/cost benchmark across tiers, to set the
 per-student spend cap and validate the ~$20 guidance. Nothing recorded
-it: the only figure from the dry run was read off the Hermes status bar
-by eye (~29,000 tokens for a full Haiku session).
+it: the only historical figure from the dry run was read off the Hermes
+status bar by eye (~29,000 tokens for one legacy economy-model session).
 
 Reads the run's own Hermes home — the per-run directory the launcher
 creates — so each run is accounted separately and the numbers can be
 compared across the 2x2 without hand-transcription.
 
-PRICING NOTE, and this one is time-sensitive: Claude Sonnet 5 is on
-introductory pricing of $2/$10 per MTok until 31 August 2026, after which
-it is $3/$15. The lab week starts around then, so a benchmark computed
-before the cutoff understates the real cost by roughly half. Both rates
-are in the table and the applicable one is chosen by date; the output
-always states which was used.
+Pricing is pinned to the two OpenAI model IDs configured by the kit. Re-check
+the official model pages at design freeze because this estimate feeds the
+per-student project-budget guidance.
 
 Writes <run>/token_usage.json and prints a one-line summary.
 
@@ -27,22 +24,17 @@ import argparse
 import json
 import sqlite3
 import sys
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
-# USD per million tokens, from the Claude models documentation.
-# (input, output). Re-check at freeze — these are the pinned figures the
-# budget guidance depends on.
+# USD per million tokens from the official OpenAI model pages, verified
+# 2026-09-14. (input, output). Cached input is priced below from the same
+# pages. If an older Hermes record exposes a cache-write counter, it is
+# conservatively priced as ordinary uncached input.
 PRICES = {
-    "claude-haiku-4-5-20251001": (1.00, 5.00),
-    "claude-haiku-4-5":          (1.00, 5.00),
-    "claude-sonnet-5":           (3.00, 15.00),   # standard
-    "claude-opus-5":             (5.00, 25.00),
-    "claude-fable-5":            (10.00, 50.00),
+    "gpt-5.6-terra": (2.00, 12.00),
+    "gpt-6-astra": (10.00, 50.00),
 }
-# Sonnet 5 introductory rate and the date it stops applying.
-SONNET_INTRO = (2.00, 10.00)
-SONNET_INTRO_UNTIL = date(2026, 8, 31)
 
 # Cache multipliers on the BASE INPUT rate. Cache was previously counted
 # but never priced, which understated a real bootstrap session roughly
@@ -50,12 +42,12 @@ SONNET_INTRO_UNTIL = date(2026, 8, 31)
 # and ~71k cache writes, and only the 72 were charged. T-21 item 12 sets
 # the per-key cap and validates the ~$20 spend guidance off this number,
 # so the understatement mattered.
-# Read 0.1x; write 1.25x at the 5-minute TTL (2x at 1-hour). Hermes does
-# not tell us which TTL it used, so the cheaper write is assumed and the
-# payload records the assumption.
+# OpenAI cached input is 0.1x for both configured models. OpenAI does not
+# publish a separate cache-write price for these models, so any legacy
+# cache-write-shaped usage is charged at the full input rate.
 CACHE_READ_MULT = 0.10
-CACHE_WRITE_MULT = 1.25
-CACHE_WRITE_TTL_ASSUMED = "5-minute (1.25x); a 1-hour TTL would be 2x"
+CACHE_WRITE_MULT = 1.00
+CACHE_WRITE_PRICING_ASSUMED = "ordinary uncached input rate (1.0x)"
 
 # Token counts appear under several key names depending on where in the
 # session file they were written; accept any of them rather than assuming
@@ -196,12 +188,11 @@ def scan(home):
 
 
 def price_for(model, when):
-    if model and model.startswith("claude-sonnet-5"):
-        intro = when <= SONNET_INTRO_UNTIL
-        return (SONNET_INTRO if intro else PRICES["claude-sonnet-5"],
-                "introductory" if intro else "standard")
+    del when  # retained in the interface for reproducible historical reports
     for key, val in PRICES.items():
-        if model and model.startswith(key):
+        # Hermes may record either the bare API model ID or its combined
+        # provider/model form in state.db.
+        if model and (model == key or model.endswith(f"/{key}")):
             return val, "standard"
     return None, "unknown model"
 
@@ -301,7 +292,7 @@ def main():
                             + acc["cache_read"] + acc["cache_write"]),
         "usd_estimate": cost,
         "usd_breakdown": cost_parts,
-        "cache_write_ttl_assumed": CACHE_WRITE_TTL_ASSUMED,
+        "cache_write_pricing_assumed": CACHE_WRITE_PRICING_ASSUMED,
         "per_model_usage": per_model,
         "usage_records_found": acc["records"],
         "files_scanned": acc["files"],
@@ -316,11 +307,6 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    note = ""
-    if model and model.startswith("claude-sonnet-5") and basis == "introductory":
-        note = (f"  NOTE: introductory rate, expires "
-                f"{SONNET_INTRO_UNTIL.isoformat()} — after that this run "
-                f"costs ~1.5x more.")
     print(f"capture_tokens: {payload['billable_tokens']:,} billable tokens "
           f"({acc['input']:,} in / {acc['output']:,} out / "
           f"{acc['cache_read']:,} cache-read / "
@@ -329,8 +315,6 @@ def main():
           f"{model or 'unknown model'} [{source}]"
           + (f" ≈ ${cost:.4f} ({basis})" if cost is not None else
              " — no price for this model"))
-    if note:
-        print(note)
     print(f"  written to {out}")
 
 

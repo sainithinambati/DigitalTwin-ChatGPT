@@ -121,6 +121,17 @@ class PackRedactionTests(unittest.TestCase):
                 self.assertEqual(once, twice)
                 self.assertEqual(n, 0)
 
+    def test_openai_and_legacy_api_keys_are_redacted(self):
+        planted = (
+            "OPENAI_API_KEY=sk-proj-STUDENTPASTEDTHIS0000\n"
+            "ANTHROPIC_API_KEY=sk-ant-LEGACYPASTEDTHIS0000"
+        )
+        out, n = pack_evidence.redact_text(planted)
+        self.assertGreaterEqual(n, 2)
+        self.assertNotIn("STUDENTPASTEDTHIS", out)
+        self.assertNotIn("LEGACYPASTEDTHIS", out)
+        self.assertEqual(pack_evidence.scan_text_for_leaks(out), 0)
+
     def test_hashes_and_ordinary_text_are_left_alone(self):
         digest = "a3f5b2c1d4e6f7a8b9c0" + "d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6"
         title = "Wireless Mouse 1200 DPI, 2 AA batteries"
@@ -493,7 +504,7 @@ class TokenCaptureTests(unittest.TestCase):
                "cache_write": 70648, "reasoning": 0}
         cost, parts = capture_tokens.compute_cost(acc, (1.00, 5.00))
 
-        self.assertAlmostEqual(cost, 0.1656, places=4)
+        self.assertAlmostEqual(cost, 0.1479, places=4)
         # cache dominates: the naive input+output figure is a small slice
         naive = round(parts["input"] + parts["output"], 4)
         self.assertAlmostEqual(naive, 0.0200, places=4)
@@ -510,16 +521,14 @@ class TokenCaptureTests(unittest.TestCase):
         self.assertEqual(capture_tokens.compute_cost(base, rate)[0],
                          capture_tokens.compute_cost(with_reasoning, rate)[0])
 
-    def test_sonnet_rate_switches_after_intro_cutoff(self):
-        intro, intro_basis = capture_tokens.price_for(
-            "claude-sonnet-5-20260801", date(2026, 8, 31))
-        standard, standard_basis = capture_tokens.price_for(
-            "claude-sonnet-5-20260801", date(2026, 9, 1))
+    def test_openai_tier_rates_accept_bare_and_hermes_model_ids(self):
+        terra = capture_tokens.price_for(
+            "gpt-5.6-terra", date(2026, 9, 14))
+        astra = capture_tokens.price_for(
+            "openai-api/gpt-6-astra", date(2026, 9, 14))
 
-        self.assertEqual((intro, intro_basis), ((2.0, 10.0),
-                                               "introductory"))
-        self.assertEqual((standard, standard_basis), ((3.0, 15.0),
-                                                     "standard"))
+        self.assertEqual(terra, ((2.0, 12.0), "standard"))
+        self.assertEqual(astra, ((10.0, 50.0), "standard"))
 
 
 if __name__ == "__main__":

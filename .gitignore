@@ -43,8 +43,12 @@ cart_run*.png
 
 # ---- Secrets ----
 .env
+.env.local
+.env.*.local
 .dtlab_env
 *api_key*
+openai_key*
+*.secret
 *.pem
 
 # ---- Local artifacts ----

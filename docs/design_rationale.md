@@ -44,7 +44,7 @@ multi-user, multi-platform chat gateway routing — capability the lab
 doesn't use, complexity the lab pays for. *A purpose-built Playwright
 script*: maximally controllable but it would be a scripted demo, not an
 agent; the course is about agentic systems, and Hermes's autonomous
-tool-use loop is the object of study. *Claude-native consumer agents
+tool-use loop is the object of study. *provider-native consumer agents
 (e.g. browser-agent products)*: lower setup friction, but less
 inspectable/configurable identity, less structured local logging, and the
 course narrative is deliberately built on an open-source stack.
@@ -54,25 +54,23 @@ log paths drift between versions. Mitigation: the docs-are-canonical
 norm, a pinned dry run on the final environment before the course week,
 and a TA work item to log every deviation.
 
-## 2. Model backend: Claude API, student-owned accounts
+## 2. Model backend: OpenAI API, student-owned accounts
 
-**Decision (updated 2026-07).** Claude (Sonnet-class) via each student's
-**own Anthropic account and API key**, set up as day-1 homework from an
-LMS checklist (Console account, billing, small credit purchase, a
-personal ~$20 monthly spend limit, one key). The pre-flight collects the
+**Decision (updated 2026-09).** Direct OpenAI API access via each student's
+**own OpenAI API project and API key**, set up as day-1 homework from an
+LMS checklist (Platform account/project, billing, small credit purchase, a
+project ~$20 monthly spend limit, one key). The pre-flight collects the
 key with hidden input into a 600-permission env file; the packer redacts
 key patterns from every artifact.
 
-**Why.** Agentic browser loops need a frontier-quality model to be
+**Why.** Agentic browser loops need a capable model to be
 reliable enough for a *timed classroom session* — a failed run at minute
-70 of a 3-hour session with ~80 people has no retry slack. Sonnet-class
-models deliver that reliability at a cost where a full five-task run is
-well under $1–2 (the four-run 2×2 lands around $3–6); a ~$20 personal
-spend limit covers retries, making total
-course cost trivial against 15 contact hours. Student-owned accounts
-distribute rate limits — every account has its own request and token
-budget, so ~80 concurrent agents share nothing, and prompt-cache reads
-are exempt from input-token limits on current models. Each student also
+70 of a 3-hour session with ~80 people has no retry slack. The economy
+route uses GPT-5.6 Terra; GPT-6 Astra remains the frontier route. Their
+actual classroom cost must be established by the T-21 benchmark before
+the ~$20 project limit is finalized. Student-owned projects distribute
+rate limits — every project has its own request and token budget, so ~80
+concurrent agents share nothing. Each student also
 leaves the course owning a working API account — itself a course
 outcome.
 
@@ -87,13 +85,13 @@ generating, distributing, and revoking 161 keys is avoidable logistics.
 The per-account spend limit replaces the central cap; the cost of losing
 the central kill switch is bounded by that same limit (~$20/student).
 
-**Model policy (2026-07-26 update).** Anthropic models only, **all
+**Model policy (2026-09-14 update).** Direct OpenAI API models only, **all
 settings
 at defaults** — no temperature or sampling overrides. (Temperature-0
 discipline belongs to survey-elicitation protocols; our agent runs are
 interactive tool-use sessions, a different regime.)
-The second factor of the 2×2 is model tier — **economy** (Claude Haiku
-class) vs. **frontier** (Claude Sonnet class) — within student, with
+The second factor of the 2×2 is model tier — **economy**
+(`gpt-5.6-terra`) vs. **frontier** (`gpt-6-astra`) — within student, with
 **tier order counterbalanced across the two lab days at the student
 level** (the counterbalance sheet assigns economy-first to half of each
 section, frontier-first to the other half, orthogonally to the

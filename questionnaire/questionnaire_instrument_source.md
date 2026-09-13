@@ -77,11 +77,11 @@ MBA cohort).
 5. **Temperature = 0 elicitation discipline.** Fixed-order,
    zero-temperature protocols govern *survey elicitation calls* to models.
    This lab's agent runs are interactive tool-use sessions — a different
-   regime — so **all Anthropic model settings remain at defaults.**
+   regime — so **all OpenAI model settings remain at defaults.**
 
-**Model policy.** Anthropic models only, default settings. Model tier is
-the second factor of the within-student 2×2: **economy tier** (Claude
-Haiku class) vs. **frontier tier** (Claude Sonnet class), with tier
+**Model policy.** Direct OpenAI API models only, default settings. Model tier is
+the second factor of the within-student 2×2: **economy tier**
+(`gpt-5.6-terra`) vs. **frontier tier** (`gpt-6-astra`), with tier
 order counterbalanced across the two lab days at the participant level
 (assigned on the counterbalance sheet, orthogonally to the grounding
 orders) and the exact pinned model ID recorded per run in the

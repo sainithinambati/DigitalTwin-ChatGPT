@@ -215,7 +215,7 @@ make_hermes_home() {  # $1 = home dir, $2 = SOUL variant file, $3 = model id
   fi
   mkdir -p "$hh"
   cp "$soul" "$hh/SOUL.md"
-  sed -e "s|{{PROVIDER}}|${DTLAB_PROVIDER:-anthropic}|g" \
+  sed -e "s|{{PROVIDER}}|${DTLAB_PROVIDER:-openai-api}|g" \
       -e "s|{{MODEL_ID}}|$model|g" "$tpl" > "$hh/config.yaml"
 }
 
@@ -274,30 +274,30 @@ else
 fi
 echo "=============================================="
 
-# 1. Claude API key. Stored ONLY in ~/.dtlab_env (chmod 600), sourced from
+# 1. OpenAI API key. Stored ONLY in ~/.dtlab_env (chmod 600), sourced from
 #    .bashrc via one idempotent line. Never echoed, never in shell history,
 #    never typed while the screen recorder could be running.
 ENVFILE="$HOME/.dtlab_env"
 # shellcheck source=/dev/null
 [ -f "$ENVFILE" ] && . "$ENVFILE"
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+if [ -z "${OPENAI_API_KEY:-}" ]; then
   echo ""
-  echo "  Your Claude API key (from YOUR OWN Anthropic account, created per"
+  echo "  Your OpenAI API key (from YOUR OWN OpenAI API project, created per"
   echo "  the setup checklist). Input is HIDDEN — nothing will appear as you"
   echo "  paste. Never paste this key anywhere else; your personal monthly"
-  echo "  spend limit (set in the Console per the checklist) is your cap."
-  read -rsp "  Key (sk-ant-...): " KEY; echo ""
-  if [[ "$KEY" == sk-ant-* ]] && [ "${#KEY}" -ge 30 ]; then
+  echo "  project budget (set in the Platform dashboard) is your cap."
+  read -rsp "  Key (sk-...): " KEY; echo ""
+  if [[ "$KEY" == sk-* ]] && [ "${#KEY}" -ge 20 ]; then
     # minimal live check BEFORE storing: a typo'd or revoked key must
     # fail here, not mid-run on lab day
     CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 \
-      -H "x-api-key: $KEY" -H "anthropic-version: 2023-06-01" \
-      "https://api.anthropic.com/v1/models" 2>/dev/null) || CODE=""
+      -H "Authorization: Bearer $KEY" \
+      "https://api.openai.com/v1/models" 2>/dev/null) || CODE=""
     case "$CODE" in
-      2*) ok "key verified against the Claude API." ;;
+      2*) ok "key verified against the OpenAI API." ;;
       401|403)
-        echo -e "${RED}The Claude API rejected this key (HTTP $CODE)."
-        echo -e "Nothing was stored. Check the key in your Anthropic Console"
+        echo -e "${RED}The OpenAI API rejected this key (HTTP $CODE)."
+        echo -e "Nothing was stored. Check the key in your OpenAI Platform dashboard"
         echo -e "and re-run dtlab-start. If a bad key was stored earlier,"
         echo -e "reset it with:  rm ~/.dtlab_env${NC}"
         exit 1 ;;
@@ -305,7 +305,7 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
         # FAIL CLOSED (audit 8.5): an unverifiable key is stored only on
         # an explicit, recorded TA override — never silently
         echo ""
-        echo -e "${YEL}Could not verify the key against the Claude API"
+        echo -e "${YEL}Could not verify the key against the OpenAI API"
         echo -e "(HTTP '${CODE:-none}') — check the codespace's network"
         echo -e "and retry. A TA can override: type OVERRIDE to store the"
         echo -e "key unverified (the override is recorded); anything else"
@@ -321,9 +321,9 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
         fi ;;
     esac
     umask 077
-    printf 'export ANTHROPIC_API_KEY=%q\n' "$KEY" > "$ENVFILE"
+    printf 'export OPENAI_API_KEY=%q\n' "$KEY" > "$ENVFILE"
     chmod 600 "$ENVFILE"
-    export ANTHROPIC_API_KEY="$KEY"
+    export OPENAI_API_KEY="$KEY"
     # shellcheck disable=SC2016  # deliberately unexpanded: the line is
     # sourced by future shells, not this one
     grep -qs 'dtlab_env' "$HOME/.bashrc" || \
@@ -333,25 +333,25 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   else
     # a malformed key must stop the flow HERE — never continue into the
     # run machinery on a bad credential
-    echo -e "${RED}That does not look like a Claude API key (sk-ant-...)."
+    echo -e "${RED}That does not look like an OpenAI API key (sk-...)."
     echo -e "Nothing was stored — re-run dtlab-start and paste the key from"
-    echo -e "your Anthropic Console. (Stored-key reset: rm ~/.dtlab_env)${NC}"
+    echo -e "your OpenAI Platform dashboard. (Stored-key reset: rm ~/.dtlab_env)${NC}"
     exit 1
   fi
 else
-  ok "Claude API key present."
+  ok "OpenAI API key present."
 fi
 # Spend-limit gate (audit 8.4): the README's claim is now a RECORDED
 # one-time confirmation — the ack lands in the manifest at pack time.
 SPENDACK="$HOME/dtlab/.spend_limit_ack"
 if [ ! -f "$SPENDACK" ]; then
-  read -rp "  Personal monthly spend limit (~\$20) set in your Anthropic Console? [y/N] " SL
+  read -rp "  OpenAI project monthly budget (~\$20) set in the Platform dashboard? [y/N] " SL
   case "$SL" in
     [yY]*)
       date -u +%FT%TZ > "$SPENDACK"
       ok "spend-limit confirmation recorded (asked once)" ;;
     *)
-      echo -e "${RED}Set it now (Anthropic Console > Billing > Limits;"
+      echo -e "${RED}Set it now (OpenAI Platform > project > Limits;"
       echo -e "takes ~2 minutes — it caps what a runaway session could"
       echo -e "cost YOU), then re-run dtlab-start.${NC}"
       exit 1 ;;
@@ -426,7 +426,7 @@ if [ "$SANDBOX" = "1" ]; then
   pin_gate "$SBTIER"
   make_hermes_home "$RUN_HOME" "$HOME/dtlab/soul/SOUL_sandbox.md" \
     "$MODEL_ID" || exit 1
-  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-anthropic}" \
+  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
     "$MODEL_ID" || config_mismatch_abort
   echo ""
   echo -e "${YEL}SANDBOX RUN — practice store only (books.toscrape.com)."
@@ -1284,7 +1284,7 @@ if [ "$BOOTSTRAP_RUN" = "1" ]; then
   RUN_HOME="$RUNSDIR/bootstrap/hermes_home"
   make_hermes_home "$RUN_HOME" "$HOME/dtlab/soul/SOUL_bootstrap.md" \
     "$MODEL_ID" || exit 1
-  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-anthropic}" \
+  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
     "$MODEL_ID" || config_mismatch_abort
 elif [ -n "$RUN" ]; then
   case "$COND" in
@@ -1296,13 +1296,13 @@ elif [ -n "$RUN" ]; then
   if [ -d "$RUN_HOME" ]; then
     # crash-resume: refresh SOUL + config in place, keep the transcripts
     make_hermes_home "$RUN_HOME" "$SOUL_SRC" "$MODEL_ID" || exit 1
-    verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-anthropic}" \
+    verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
       "$MODEL_ID" || config_mismatch_abort
   else
     HH_STAGE="$RUNSDIR/.pending_hermes_home"
     rm -rf "$HH_STAGE"
     make_hermes_home "$HH_STAGE" "$SOUL_SRC" "$MODEL_ID" || exit 1
-    verify_hermes_config "$HH_STAGE" "${DTLAB_PROVIDER:-anthropic}" \
+    verify_hermes_config "$HH_STAGE" "${DTLAB_PROVIDER:-openai-api}" \
       "$MODEL_ID" || { rm -rf "$HH_STAGE"; config_mismatch_abort; }
     mkdir -p "$RUNSDIR/run$RUN"
     mv "$HH_STAGE" "$RUN_HOME"
@@ -1316,7 +1316,7 @@ else
   SOUL_SRC="$HOME/dtlab/soul/SOUL.md"
   [ -f "$SOUL_SRC" ] || SOUL_SRC="$WS/SOUL.md"
   make_hermes_home "$RUN_HOME" "$SOUL_SRC" "$MODEL_ID" || exit 1
-  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-anthropic}" \
+  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
     "$MODEL_ID" || config_mismatch_abort
 fi
 # run state is written HERE — every gate above has passed, so a refused

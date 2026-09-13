@@ -52,8 +52,9 @@ plan is `COURSE_PLAN_1WEEK.md`.
     format under the pinned Hermes/model; check the dry-run manifest's
     `candidates` and `warnings` fields.
 12. **Token/cost benchmark across tiers** — one full single-category
-    task under Haiku-class and Sonnet-class, each with and without
-    extended thinking, repeated over 2–3 categories; record tokens, $,
+    task under `gpt-5.6-terra` (reasoning `none` / `medium`) and
+    `gpt-6-astra` (reasoning `low` / `medium`), repeated over 2–3
+    categories; record tokens, $,
     wall-clock, success (TA_ONBOARDING work item). Sets the per-key cap
     and validates the ~$20 spend-limit guidance.
 13. **Category links** — spot-check the `amazon_url` browse-node links
@@ -79,6 +80,24 @@ plan is `COURSE_PLAN_1WEEK.md`.
 
 Append every kit change and every observed deviation from the docs
 here, newest first, dated, with the files touched and the suites re-run.
+
+### 2026-09-14 — Direct OpenAI API migration
+
+Replaced the Anthropic integration with Hermes's direct `openai-api`
+provider and `OPENAI_API_KEY`. The requested economy and frontier names
+exist as official API model IDs, so no substitute mapping is required:
+economy = `gpt-5.6-terra`; frontier = `gpt-6-astra`. The launcher still
+creates and verifies a fresh per-run Hermes configuration and records
+the resolved model ID, preserving the experiment's fail-closed tier
+selection. Provisioning now pins `openai==2.24.0`, matching Hermes
+v0.20.0's core dependency. The onboarding probe uses Bearer auth against
+the OpenAI model-list endpoint, and evidence packing redacts both current
+OpenAI and legacy Anthropic key material.
+
+The visible earlier migration work fixed Hermes's old `model.id` schema:
+the pinned release requires a combined `model.default` value. That
+repair remains in place; this change replaces its provider/model values
+without weakening the existing verification and audit trail.
 
 ### 2026-07-27 — Kit finalized for the T-21 trial run
 
