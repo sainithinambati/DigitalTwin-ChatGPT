@@ -397,6 +397,7 @@ check $? 0 "network steps short-circuited"
 check $? 0 "DTLAB_ROOT override honored; ~/dtlab is a symlink to it"
 [ -x "$HOME/.local/bin/dtlab-start" ] && [ -x "$HOME/.local/bin/dtlab-pack" ]
 check $? 0 "dtlab-* wrappers created by the local phase"
+# shellcheck disable=SC2016  # literal generated-script text, not expansion
 grep -q 'REMOTE="${DTLAB_UPDATE_REMOTE:-origin}"' \
   "$HOME/.local/bin/dtlab-update" \
   && ! grep -q 'dringel/DTShopAgent' "$HOME/.local/bin/dtlab-update"
