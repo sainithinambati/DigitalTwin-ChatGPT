@@ -121,9 +121,13 @@ grep -q 'MARK-STANDARD' "$HOME/dtlab/runs/run1/hermes_home/SOUL.md"
 check $? 0 "run-1 hermes home carries the condition (standard) SOUL"
 grep -q 'gpt-economy-test' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
   && grep -q 'openai-api' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
+  && grep -q 'default: "gpt-economy-test"' \
+       "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
+  && ! grep -q 'openai-api/gpt-economy-test' \
+       "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
   && grep -q 'api_mode: "codex_responses"' \
        "$HOME/dtlab/runs/run1/hermes_home/config.yaml"
-check $? 0 "run-1 config pins the economy model, provider, and Responses API"
+check $? 0 "run-1 config pins a bare economy model, provider, and Responses API"
 check "$(find "$HOME/dtlab/runs/run1/hermes_home" -mindepth 1 \
            -exec basename {} \; | sort | tr '\n' ' ')" \
       "SOUL.md config.yaml " "fresh run home holds ONLY SOUL.md + config.yaml"
@@ -393,6 +397,10 @@ check $? 0 "network steps short-circuited"
 check $? 0 "DTLAB_ROOT override honored; ~/dtlab is a symlink to it"
 [ -x "$HOME/.local/bin/dtlab-start" ] && [ -x "$HOME/.local/bin/dtlab-pack" ]
 check $? 0 "dtlab-* wrappers created by the local phase"
+grep -q 'REMOTE="${DTLAB_UPDATE_REMOTE:-origin}"' \
+  "$HOME/.local/bin/dtlab-update" \
+  && ! grep -q 'dringel/DTShopAgent' "$HOME/.local/bin/dtlab-update"
+check $? 0 "dtlab-update follows origin and cannot restore the Anthropic upstream"
 DTLAB_TEST=1 DTLAB_ROOT="$HOME/wsroot/.dtlab" bash "$SETUP" \
   > "$HOME/setup_out2.txt" 2>&1
 check $? 0 "postCreate phase exits 0 with DTLAB_TEST=1"

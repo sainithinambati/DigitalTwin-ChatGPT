@@ -28,6 +28,20 @@ validate_profile = load_tool("validate_profile")
 pack_evidence = load_tool("pack_evidence")
 
 
+class HermesConfigTemplateTests(unittest.TestCase):
+    def test_explicit_openai_provider_uses_bare_model_ids(self):
+        template = (REPO / "provisioning" /
+                    "hermes_config.template.yaml").read_text(
+                        encoding="utf-8")
+        rendered = template.replace("{{PROVIDER}}", "openai-api").replace(
+            "{{MODEL_ID}}", "gpt-5.6-terra")
+
+        self.assertIn('default: "gpt-5.6-terra"', rendered)
+        self.assertIn('provider: "openai-api"', rendered)
+        self.assertNotIn('"openai-api/gpt-5.6-terra"', rendered)
+        self.assertEqual(rendered.count('model: "gpt-5.6-terra"'), 5)
+
+
 class ScrubProfileTests(unittest.TestCase):
     def test_scrub_is_deterministic_and_keeps_age(self):
         text = """# Purchase Profile: Vinita Gupta Rai

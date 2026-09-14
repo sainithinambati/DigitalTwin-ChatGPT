@@ -17,9 +17,9 @@
 #
 # Two things this release requires that the old schema got wrong:
 #   * the key is `model.default`, not `model.id`
-#   * the value is a COMBINED "provider/model-id" string, not a bare id
-#     (`hermes config get model.default` returns e.g.
-#     openai-api/gpt-5.6-terra)
+#   * when `model.provider` is explicit, `model.default` must be the BARE
+#     provider model ID. A combined `openai-api/model-id` value is treated as
+#     the literal model sent to api.openai.com and returns model_not_found.
 # `model.provider` is a separate key selecting the inference provider; it is
 # set explicitly rather than left on "auto" so credential auto-detection can
 # never silently route a run somewhere else.
@@ -33,7 +33,7 @@
 # environment (~/.dtlab_env); pack-time redaction treats any key in a config
 # as a leak.
 model:
-  default: "{{PROVIDER}}/{{MODEL_ID}}"
+  default: "{{MODEL_ID}}"
   provider: "{{PROVIDER}}"
   # OpenAI reasoning models with tools use the Responses API in this pinned
   # Hermes release. Keep this explicit so a stale session/provider setting
@@ -44,20 +44,20 @@ auxiliary:
   # Image analysis: vision_analyze tool + browser screenshots
   vision:
     provider: "{{PROVIDER}}"
-    model: "{{PROVIDER}}/{{MODEL_ID}}"
+    model: "{{MODEL_ID}}"
   # Web page scraping / summarization + browser page text extraction
   web_extract:
     provider: "{{PROVIDER}}"
-    model: "{{PROVIDER}}/{{MODEL_ID}}"
+    model: "{{MODEL_ID}}"
   # Context compression — summarizes long sessions to shrink the prompt
   compression:
     provider: "{{PROVIDER}}"
-    model: "{{PROVIDER}}/{{MODEL_ID}}"
+    model: "{{MODEL_ID}}"
   # Automatic session title generation after the first exchange
   title_generation:
     provider: "{{PROVIDER}}"
-    model: "{{PROVIDER}}/{{MODEL_ID}}"
+    model: "{{MODEL_ID}}"
   # Session search — summarizes matching past sessions
   session_search:
     provider: "{{PROVIDER}}"
-    model: "{{PROVIDER}}/{{MODEL_ID}}"
+    model: "{{MODEL_ID}}"

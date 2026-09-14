@@ -28,7 +28,8 @@ honors that variable and this kit must send first-party keys only to
 `dtlab-start` keeps the existing Digital Twin safeguards:
 
 - a fresh `HERMES_HOME` and configuration for every run;
-- a combined `model.default` value of `openai-api/<model-id>`;
+- an explicit `model.provider: openai-api` plus a bare OpenAI API model ID
+  in `model.default` (for example, `gpt-5.6-terra`);
 - file-level and `hermes config get model.default` verification before
   launch;
 - one model ID and configuration hash in each run's evidence.
@@ -37,6 +38,9 @@ The previous migration attempt visible in the template addressed a
 different issue: the old Hermes schema used `model.id`, while v0.20.0
 requires `model.default`. That old configuration was ignored and could
 fall back to a default model. Its fail-closed repair remains intact.
+The provider prefix must not be included in `model.default`: with an
+explicit provider, Hermes forwards that value to OpenAI verbatim, so
+`openai-api/gpt-5.6-terra` produces a `model_not_found` response.
 
 ## Credential and dependency setup
 

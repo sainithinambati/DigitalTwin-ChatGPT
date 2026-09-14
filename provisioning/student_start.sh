@@ -253,7 +253,7 @@ verify_hermes_config() {  # $1 = home dir, $2 = provider, $3 = model id
     return 0
   fi
   case "$eff" in
-    *"$3"*) return 0 ;;
+    "$3") return 0 ;;
     *)
       echo -e "${RED}  [!!] Hermes loaded model '$eff' but this run is" \
               "assigned '$3'.${NC}"

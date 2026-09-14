@@ -347,19 +347,15 @@ esac
 EOF
 cat > "$HOME/.local/bin/dtlab-update" <<'EOF'
 #!/usr/bin/env bash
-# Pull course fixes into an ALREADY-RUNNING codespace.
+# Pull fixes from this repository's origin into an ALREADY-RUNNING codespace.
 #
-# Two things have to happen and only the first is obvious. "Use this
-# template" copies have NO git link back to the course repo, so an
-# upstream remote is added on first use. And ~/dtlab (the SOULs, config
-# and dtlab-* commands the lab actually reads) is provisioned ONCE when
-# the codespace is created — so after merging we re-run setup.sh, or the
-# new files sit in the repo and never reach the runtime.
+# ~/dtlab (the SOULs, config and dtlab-* commands the lab actually reads)
+# is provisioned when the codespace is created, so after updating the
+# checkout we re-run setup.sh to refresh the runtime files.
 #
 # Your own data is untouched: runs/, quarantine/, the persona files and
 # the frozen purchase profile are never rewritten by setup.sh.
 set -euo pipefail
-UPSTREAM="https://github.com/dringel/DTShopAgent.git"
 KIT=$(ls -d /workspaces/*/.devcontainer 2>/dev/null | head -1 | xargs -r dirname)
 if [ -z "$KIT" ] || [ ! -d "$KIT/.git" ]; then
   echo "Could not find the lab repo under /workspaces — tell a TA." >&2
@@ -372,25 +368,19 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "deliberately, tell a TA rather than continuing."
   exit 1
 fi
-git remote get-url upstream >/dev/null 2>&1 || git remote add upstream "$UPSTREAM"
-echo "Fetching course updates..."
-git fetch --quiet upstream
-if git merge --ff-only upstream/main 2>/dev/null; then
+REMOTE="${DTLAB_UPDATE_REMOTE:-origin}"
+if ! git remote get-url "$REMOTE" >/dev/null 2>&1; then
+  echo "Git remote '$REMOTE' is not configured — tell a TA." >&2
+  exit 1
+fi
+echo "Fetching updates from $REMOTE..."
+git fetch --quiet "$REMOTE"
+if git merge --ff-only "$REMOTE/main"; then
   echo "Repo updated (fast-forward)."
 else
-  # "Use this template" copies start from a fresh initial commit and
-  # share NO history with the course repo, so a merge is impossible by
-  # construction. Take upstream's files instead — the lab never asks a
-  # student to edit repo files, so there is nothing of theirs to lose.
-  echo "No shared history (template copy) — taking the course files."
-  git checkout upstream/main -- . || {
-    echo "Could not apply the course files — tell a TA." >&2; exit 1; }
-  # checkout writes the files AND stages them, which would trip the
-  # dirty-tree guard above on the NEXT run — the update would lock
-  # itself out after succeeding once. Commit so the tree ends clean.
-  git -c user.email=lab@dtlab -c user.name="DT Lab" \
-      commit -qm "course update" >/dev/null 2>&1 || true
-  echo "Repo files updated."
+  echo "The checkout cannot fast-forward to $REMOTE/main." >&2
+  echo "Nothing was overwritten. Tell a TA before changing branches." >&2
+  exit 1
 fi
 echo "Re-provisioning ~/dtlab ..."
 bash "$KIT/.devcontainer/setup.sh" >/dev/null
