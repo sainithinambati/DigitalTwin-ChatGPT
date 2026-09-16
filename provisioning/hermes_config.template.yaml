@@ -18,8 +18,8 @@
 # Two things this release requires that the old schema got wrong:
 #   * the key is `model.default`, not `model.id`
 #   * when `model.provider` is explicit, `model.default` must be the BARE
-#     provider model ID. A combined `openai-api/model-id` value is treated as
-#     the literal model sent to api.openai.com and returns model_not_found.
+#     provider model ID. A combined `openai-codex/model-id` value is treated
+#     as the literal model ID and fails provider-side.
 # `model.provider` is a separate key selecting the inference provider; it is
 # set explicitly rather than left on "auto" so credential auto-detection can
 # never silently route a run somewhere else.
@@ -29,9 +29,9 @@
 # text extraction and vision reads browser screenshots — so a different-tier
 # side model would contaminate the tier manipulation directly.
 #
-# NEVER put an API key in this file. Hermes reads OPENAI_API_KEY from the
-# environment (~/.dtlab_env); pack-time redaction treats any key in a config
-# as a leak.
+# NEVER put an API key or OAuth token in this file. Hermes reads its Codex
+# OAuth credential from the permission-restricted global auth store created by
+# `hermes auth add openai-codex`; per-run homes consume that store read-only.
 model:
   default: "{{MODEL_ID}}"
   provider: "{{PROVIDER}}"
@@ -40,24 +40,34 @@ model:
   # cannot fall back to Chat Completions.
   api_mode: "codex_responses"
 
+agent:
+  # The bonus-assignment specification requires medium reasoning for Terra.
+  # Pin it explicitly instead of depending on the Hermes provider default.
+  reasoning_effort: "medium"
+
 auxiliary:
   # Image analysis: vision_analyze tool + browser screenshots
   vision:
     provider: "{{PROVIDER}}"
     model: "{{MODEL_ID}}"
+    reasoning_effort: "medium"
   # Web page scraping / summarization + browser page text extraction
   web_extract:
     provider: "{{PROVIDER}}"
     model: "{{MODEL_ID}}"
+    reasoning_effort: "medium"
   # Context compression — summarizes long sessions to shrink the prompt
   compression:
     provider: "{{PROVIDER}}"
     model: "{{MODEL_ID}}"
+    reasoning_effort: "medium"
   # Automatic session title generation after the first exchange
   title_generation:
     provider: "{{PROVIDER}}"
     model: "{{MODEL_ID}}"
+    reasoning_effort: "medium"
   # Session search — summarizes matching past sessions
   session_search:
     provider: "{{PROVIDER}}"
     model: "{{MODEL_ID}}"
+    reasoning_effort: "medium"

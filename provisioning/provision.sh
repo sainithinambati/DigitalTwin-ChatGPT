@@ -6,7 +6,7 @@
 #
 # After provisioning, a student only needs to:
 #   1. Import the VM, log in (student / <course password>)
-#   2. Paste their OpenAI API key when prompted by student_start.sh
+#   2. Complete the OpenAI device login prompted by student_start.sh
 #   3. Drop persona_survey.md (from make_persona.py) into ~/dtlab/workspace
 #      (purchase_profile.md is written by the one-time bootstrap session
 #      dtlab-start runs before run 1, then frozen)
@@ -287,5 +287,5 @@ echo "no interactive 'hermes setup' provider choice is needed. If the pinned"
 echo "Hermes release requires a global ~/.hermes/config.yaml to exist, create"
 echo "a minimal one at the dry run (TA_ONBOARDING.md > T-21 trial-run work"
 echo "items #1). Enable browser automation in LOCAL browser mode. Leave the"
-echo "API key BLANK everywhere — students insert their own via dtlab-start."
-echo "Then: clear shell history, remove any test keys, snapshot, export .ova."
+echo "No credentials are baked in — students device-login via dtlab-start."
+echo "Then: clear shell history, remove any test credentials, snapshot, export .ova."

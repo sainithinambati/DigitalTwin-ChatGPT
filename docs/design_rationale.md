@@ -54,14 +54,13 @@ log paths drift between versions. Mitigation: the docs-are-canonical
 norm, a pinned dry run on the final environment before the course week,
 and a TA work item to log every deviation.
 
-## 2. Model backend: OpenAI API, student-owned accounts
+## 2. Model backend: OpenAI Codex, student-owned subscriptions
 
-**Decision (updated 2026-09).** Direct OpenAI API access via each student's
-**own OpenAI API project and API key**, set up as day-1 homework from an
-LMS checklist (Platform account/project, billing, small credit purchase, a
-project ~$20 monthly spend limit, one key). The pre-flight collects the
-key with hidden input into a 600-permission env file; the packer redacts
-key patterns from every artifact.
+**Decision (updated 2026-09-17).** Hermes's `openai-codex` provider via each
+student's **own ChatGPT/Codex subscription**, authenticated with OpenAI
+device-code OAuth. The owner-only credential stays in `~/.hermes/auth.json`,
+outside the repository, run homes, evidence, and recordings. The launcher
+clears inherited API credentials and endpoint overrides before every run.
 
 **Why.** Agentic browser loops need a capable model to be
 reliable enough for a *timed classroom session* — a failed run at minute
@@ -82,12 +81,12 @@ footnote. *A single course workspace issuing per-student keys*: central
 caps and a kill switch are attractive, but one org-level rate-limit pool
 under ~80 concurrent browser agents is the binding constraint, and
 generating, distributing, and revoking 161 keys is avoidable logistics.
-The per-account spend limit replaces the central cap; the cost of losing
-the central kill switch is bounded by that same limit (~$20/student).
+Subscription usage is bounded by each account's current Codex plan limits;
+there is no shared API key or central Platform billing project.
 
-**Model policy (2026-09-14 update).** Direct OpenAI API models only, **all
-settings
-at defaults** — no temperature or sampling overrides. (Temperature-0
+**Model policy (2026-09-17 update).** OpenAI Codex subscription models only,
+with **medium reasoning pinned explicitly** for the main agent and auxiliary
+calls; temperature and sampling remain at provider defaults. (Temperature-0
 discipline belongs to survey-elicitation protocols; our agent runs are
 interactive tool-use sessions, a different regime.)
 The second factor of the 2×2 is model tier — **economy**
@@ -580,9 +579,9 @@ Students remove saved payment methods from the lab browser profile —
 now a pre-flight confirm gate in `dtlab-start`, not just a handout line —
 and carts are emptied after evidence capture.
 
-**Secrets and recordings (2026-07 hardening).** The API key is collected
-with hidden input, stored only in a 600-permission `~/.dtlab_env`, and
-never echoed — so it cannot appear in the screen recording; `dtlab-record`
+**Secrets and recordings (2026-09 hardening).** The OAuth credential is
+stored only in owner-only `~/.hermes/auth.json` and never copied into a run
+home — so it cannot appear in the screen recording; `dtlab-record`
 refuses to start until the student confirms login already happened (no
 passwords/OTPs on screen). The packer runs a content-redaction pass over
 every packed text file (API-key patterns scrubbed; email/phone/"Deliver

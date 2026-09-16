@@ -35,8 +35,8 @@ human-first;
 every run (assessment blinding + CAPTCHA handling; see
 PERSONALIZATION_PROTOCOL.md Layer 4) — and **all verdicts are captured
 in one blind Friday session** after run 4, where neither grounding nor
-tier is knowable at judgment time. Recommended personal spend limit:
-**$20** (four runs ≈ $3–6 with retries).
+tier is knowable at judgment time. Subscription use is subject to each
+student's current ChatGPT/Codex plan limits.
 
 Three standing simplifications carried over from earlier drafts: the
 agent reads the purchase history itself at Bootstrap (no extraction
@@ -74,10 +74,9 @@ Sunday:
       constraint-blindness; synthetic-persona opt-out available).
 - [ ] The 115-item questionnaire (~30 min; phone is fine — only the
       Form link and your pseudonym are needed).
-- [ ] Own OpenAI Platform account/project: billing, small credit purchase,
-      project **monthly spend limit ~$20**, one API key (~15 min). Your
-      key is first needed at Tuesday's pre-flight — TA spare keys exist
-      for setup casualties, but your own key is the deliverable.
+- [ ] ChatGPT account on a plan that includes Codex access. The one-time
+      OpenAI device login happens at Tuesday's pre-flight; no API key,
+      Platform project, or prepaid API credits are required.
 
 Instructor Monday night: export Form responses →
 `make_all_personas.py --zip` → per-student persona zips on the LMS;
@@ -90,17 +89,17 @@ Tuesday-morning stragglers are recoverable).
 |---|---|
 | 0:00–0:30 | Intro to agentic AI (slides). |
 | 0:30–1:00 | Reading discussion: "Regulating advanced artificial agents" (Russell et al.). |
-| 1:00–1:20 | The capstone project brief + consent walkthrough; hand out the assignment sheet — every student leaves knowing their pseudonym, pair, and per-day condition order — and assign tonight's homework (consent + Form + OpenAI API account). |
+| 1:00–1:20 | The capstone project brief + consent walkthrough; hand out the assignment sheet — every student leaves knowing their pseudonym, pair, and per-day condition order — and assign tonight's homework (consent + Form + confirm ChatGPT/Codex access). |
 | 1:20–2:30 | Create GitHub accounts, then codespaces from the codespace link on the LMS handout (first builds run while the room works); guided tour of the lab while builds run — the week's arc, the student commands, what the twin will and won't do. TAs circulate on build failures. |
-| 2:30–3:00 | **Checkpoint 1 = codespace built + Lab Desktop opens** (no API key needed yet — the agent smoke run happens Tuesday, once keys exist); TAs note build failures for overnight triage. |
-| Overnight | Students: consent + the 115-item Form (~30 min) + OpenAI API account/key/$20 limit. Instructor: personas batch-generated → LMS; roster chase. |
+| 2:30–3:00 | **Checkpoint 1 = codespace built + Lab Desktop opens** (OpenAI device login and the agent smoke run happen Tuesday); TAs note build failures for overnight triage. |
+| Overnight | Students: consent + the 115-item Form (~30 min) + confirm their ChatGPT plan includes Codex. Instructor: personas batch-generated → LMS; roster chase. |
 
 ## Session 7 (Tue) — Components, Architectures, Governance + build complete
 
 | Time | Activity |
 |---|---|
 | 0:00–1:30 | Lecture: autonomous agents — components, architectures, governance (SOUL.md and the kit's enforcement machinery as the running case). |
-| 1:30–2:40 | Hands-on completion: API key in (first `dtlab-start` prompt), persona files in, pre-flight green (it announces each student's randomized task order), one full sandbox agent run watched end-to-end. **Checkpoint 2 = fully green environment on your own key.** |
+| 1:30–2:40 | Hands-on completion: OpenAI device login (first `dtlab-start` prompt), persona files in, pre-flight green (it announces each student's randomized task order), one full sandbox agent run watched end-to-end. **Checkpoint 2 = fully green environment on your own subscription.** |
 | 2:40–3:00 | Q&A on what the agent will and won't do; stragglers booked into office hours. |
 
 ## Session 8 (Wed) — Building with Hermes + the human session

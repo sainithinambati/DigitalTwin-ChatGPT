@@ -296,12 +296,11 @@ silently understate its denominator.
   payment data, and carrier data never reach the workspace or the dataset.
 - `student_start.sh` refuses to launch if raw export files or PII-named
   files sit in the agent workspace.
-- API keys belong to the students' own OpenAI API projects. Each project
-  carries a monthly spend limit (~$20, set during the Monday
-  checklist and confirmed at pre-flight); the key lives only in the
-  student's 600-permission env file, is content-redacted from every
-  packed artifact by `dtlab-pack`, and the student can delete it from
-  their OpenAI Platform project the moment the course ends.
+- Students authenticate Hermes's `openai-codex` provider through OpenAI
+  device-code OAuth using their own ChatGPT/Codex subscription. The
+  owner-only credential remains in `~/.hermes/auth.json`, outside every
+  run home and evidence path; it is never committed or packed. Inherited
+  `OPENAI_API_KEY` and `OPENAI_BASE_URL` variables are cleared before launch.
 
 ## 5. Cohort dataset assembly (instructor, after Friday submissions close)
 

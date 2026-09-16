@@ -24,9 +24,9 @@ guard(){ case "$HOME" in "$SANDBOX_HOME"*) ;; *)
 
 mkenv(){  # persona_factor(0/1) as $1
 guard
-rm -rf "$HOME/dtlab" "$HOME/.dtlab_env" "$HOME/.bashrc"
+rm -rf "$HOME/dtlab" "$HOME/.hermes" "$HOME/.dtlab_env" "$HOME/.bashrc"
 mkdir -p "$HOME/dtlab/workspace" "$HOME/dtlab/soul" "$HOME/dtlab/quarantine/human" \
-         "$HOME/dtlab/evidence"
+         "$HOME/dtlab/evidence" "$HOME/.hermes"
 # Substitute by KEY, not by matching the shipped VALUE. Matching
 # 'PIN-AT-DRYRUN' meant the fixture silently stopped applying the moment
 # anyone pinned real model IDs -- i.e. exactly when the instructor does
@@ -55,13 +55,12 @@ for i in $(seq 1 113); do echo "- **X$i** q"; done \
 echo "student_id,answer" > "$HOME/dtlab/workspace/persona_survey.csv"
 touch "$HOME/dtlab/quarantine/human/human_picks.csv" \
       "$HOME/dtlab/quarantine/human/human_session.jsonl"
-printf 'export OPENAI_API_KEY=sk-proj-test0000000000000000000000\n' \
-  > "$HOME/.dtlab_env"
-chmod 600 "$HOME/.dtlab_env"
+printf '{"version":1,"credential_pool":{"openai-codex":[{"access_token":"test-token"}]}}\n' \
+  > "$HOME/.hermes/auth.json"
+chmod 700 "$HOME/.hermes"
+chmod 600 "$HOME/.hermes/auth.json"
 # consent acknowledgment already given (the gate has its own case [22])
 date -u +%FT%TZ > "$HOME/dtlab/.consent_ack"
-# spend-limit confirmation already recorded (the gate has case [29])
-date -u +%FT%TZ > "$HOME/dtlab/.spend_limit_ack"
 # bootstrap phase already done: frozen profile + matching hash on file
 # (Phase 0 has its own case [27])
 printf '# Purchase profile (bootstrap output)\n- top categories: x\n' \
@@ -120,14 +119,16 @@ check $? 0 "run1 start time recorded"
 grep -q 'MARK-STANDARD' "$HOME/dtlab/runs/run1/hermes_home/SOUL.md"
 check $? 0 "run-1 hermes home carries the condition (standard) SOUL"
 grep -q 'gpt-economy-test' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
-  && grep -q 'openai-api' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
+  && grep -q 'openai-codex' "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
   && grep -q 'default: "gpt-economy-test"' \
        "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
-  && ! grep -q 'openai-api/gpt-economy-test' \
+  && ! grep -q 'openai-codex/gpt-economy-test' \
        "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
   && grep -q 'api_mode: "codex_responses"' \
+       "$HOME/dtlab/runs/run1/hermes_home/config.yaml" \
+  && grep -q 'reasoning_effort: "medium"' \
        "$HOME/dtlab/runs/run1/hermes_home/config.yaml"
-check $? 0 "run-1 config pins a bare economy model, provider, and Responses API"
+check $? 0 "run-1 config pins a bare model, Codex OAuth provider, medium reasoning, and Responses API"
 check "$(find "$HOME/dtlab/runs/run1/hermes_home" -mindepth 1 \
            -exec basename {} \; | sort | tr '\n' ' ')" \
       "SOUL.md config.yaml " "fresh run home holds ONLY SOUL.md + config.yaml"
@@ -566,47 +567,39 @@ check $? 0 "fail-closed message names the valid entries and the sheet"
 [ ! -d "$HOME/dtlab/runs/run1" ]
 check $? 0 "no run state written on the tier fail-close"
 
-echo "[17] B16.3: API key — malformed exits at once; live check gates storage"
+echo "[17] B16.3: Codex OAuth — malformed state re-authenticates; no API key is used"
 mkenv 0
-rm -f "$HOME/.dtlab_env"
+printf '{not-json}\n' > "$HOME/.hermes/auth.json"
 mkdir -p "$HOME/bin"
-# A credential file is data, not a startup-script injection point.
-printf 'export OPENAI_API_KEY=sk-proj-test0000000000000000000000\ntouch %s\n' \
-  "$HOME/envfile-command-ran" > "$HOME/.dtlab_env"
-rc=$(run '')
-check "$rc" 1 "multi-line credential file is rejected without execution"
-[ ! -e "$HOME/envfile-command-ran" ]; check $? 0 "credential file commands never run"
-rm -f "$HOME/.dtlab_env"
-printf '#!/usr/bin/env bash\nprintf 200\n' > "$HOME/bin/curl"
-chmod +x "$HOME/bin/curl"
-rc=$(run 'garbage-key\n' PATH="$HOME/bin:$PATH")
-check "$rc" 1 "malformed key exits 1 immediately (never reaches the run flow)"
-grep -q "does not look like" "$HOME/last_out.txt"
-check $? 0 "clear malformed-key message"
-[ ! -f "$HOME/.dtlab_env" ]; check $? 0 "nothing stored on malformed input"
-printf '#!/usr/bin/env bash\nprintf 401\n' > "$HOME/bin/curl"
-rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\n' PATH="$HOME/bin:$PATH")
-check "$rc" 1 "API-rejected key exits 1"
-grep -q "rm ~/.dtlab_env" "$HOME/last_out.txt"
-check $? 0 "reset path printed"
-[ ! -f "$HOME/.dtlab_env" ]; check $? 0 "rejected key never stored"
-# shellcheck disable=SC2016  # literal variables belong to the generated stub
-printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$HOME/curl_args"\nprintf "%%s\\n" "${OPENAI_BASE_URL-unset}" > "$HOME/curl_base"\ncat > "$HOME/curl_config"\nprintf 200\n' > "$HOME/bin/curl"
-rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\ny\ny\n\n' \
-  PATH="$HOME/bin:$PATH" OPENAI_BASE_URL='https://attacker.invalid/v1')
-check "$rc" 0 "verified key stores and the flow continues"
-grep -q "key verified" "$HOME/last_out.txt"
-check $? 0 "verification reported"
-grep -q "sk-proj-" "$HOME/.dtlab_env"
-check $? 0 "key stored after verification"
-[ ! -f "$HOME/.bashrc" ] || ! grep -q 'dtlab_env' "$HOME/.bashrc"
-check $? 0 "credential file is not globally sourced from .bashrc"
-grep -q 'https://api.openai.com/v1/models' "$HOME/curl_args" \
-  && ! grep -q 'sk-proj-' "$HOME/curl_args" \
-  && grep -q 'Authorization: Bearer sk-proj-' "$HOME/curl_config" \
-  && grep -q '^unset$' "$HOME/curl_base" \
-  && ! grep -q 'x-api-key\|anthropic-version' "$HOME/curl_args"
-check $? 0 "probe is first-party, ignores base-URL injection, and hides key from argv"
+cat > "$HOME/bin/hermes" <<'EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "auth" ] && [ "${2:-}" = "add" ] && \
+   [ "${3:-}" = "openai-codex" ]; then
+  printf '%s\n' "$*" > "$HOME/oauth_args"
+  printf '{"version":1,"credential_pool":{"openai-codex":[{"access_token":"oauth-test"}]}}\n' \
+    > "$HERMES_HOME/auth.json"
+  exit 0
+fi
+if [ "${1:-}" = "config" ] && [ "${2:-}" = "get" ]; then
+  sed -n 's/^[[:space:]]*default:[[:space:]]*"\([^"]*\)"/\1/p' \
+    "$HERMES_HOME/config.yaml" | head -1
+  exit 0
+fi
+exit 1
+EOF
+chmod +x "$HOME/bin/hermes"
+rc=$(run 'y\ny\n\n' PATH="$HOME/bin:$PATH" \
+  OPENAI_API_KEY='sk-proj-MUSTNOTBEUSED000000' \
+  OPENAI_BASE_URL='https://attacker.invalid/v1')
+check "$rc" 0 "device-code OAuth repair succeeds and the flow continues"
+grep -q '^auth add openai-codex --type oauth$' "$HOME/oauth_args"
+check $? 0 "launcher invokes the pinned Hermes Codex OAuth flow"
+grep -q 'openai-codex' "$HOME/.hermes/auth.json"
+check $? 0 "OAuth credential is stored in the global Hermes auth store"
+[ ! -e "$HOME/.dtlab_env" ]
+check $? 0 "launcher never creates the legacy API-key file"
+grep -q 'no API key' "$HOME/last_out.txt"
+check $? 0 "student-facing output confirms subscription authentication"
 guard; rm -rf "${HOME:?}/bin"
 
 echo "[18] B16.4: mid-week sandbox fallback stamps PER-RUN, not the whole zip"
@@ -755,7 +748,7 @@ check "$(cat "$HOME/dtlab/runs/run1/model_id.txt")" "test-model-economy" \
 echo "[24] C1.1: generated-config mismatch fails closed, leaves no run state"
 mkenv 1
 # tampered template: hardcoded model instead of the {{MODEL_ID}} slot
-printf 'model:\n  provider: "openai-api"\n  id: "some-other-model"\n' \
+printf 'model:\n  provider: "openai-codex"\n  id: "some-other-model"\n' \
   > "$HOME/dtlab/hermes_config.template.yaml"
 rc=$(run 'P_FIRST\neconomy\ny\ny\n\n')
 check "$rc" 1 "config that does not name the assigned model exits 1"
@@ -980,44 +973,30 @@ for i in $(seq 1 108); do echo "- **X$i** q"; done \
 rc=$(run 'P_FIRST\neconomy\ny\ny\n\n')
 check "$rc" 0 "108-item persona passes the fallback heuristic (no meta)"
 
-echo "[29] C1.8: unverifiable key fails closed; spend-limit gate recorded"
+echo "[29] C1.8: wrong provider and failed OAuth both fail closed"
 mkenv 0
-rm -f "$HOME/.dtlab_env"
+sed "s/DTLAB_PROVIDER='openai-codex'/DTLAB_PROVIDER='openai-api'/" \
+  "$HOME/dtlab/dtlab_config.env" > "$HOME/dtlab/cfg.tmp" \
+  && mv "$HOME/dtlab/cfg.tmp" "$HOME/dtlab/dtlab_config.env"
+rc=$(run '')
+check "$rc" 1 "direct API provider is rejected before any run state"
+grep -q "must be 'openai-codex'" "$HOME/last_out.txt"
+check $? 0 "provider failure names the required subscription route"
+[ ! -e "$HOME/dtlab/runs" ]
+check $? 0 "provider failure writes no run state"
+
+mkenv 0
+rm -f "$HOME/.hermes/auth.json"
 mkdir -p "$HOME/bin"
-printf '#!/usr/bin/env bash\nexit 7\n' > "$HOME/bin/curl"    # network dead
-chmod +x "$HOME/bin/curl"
-rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\nnope\n' PATH="$HOME/bin:$PATH")
-check "$rc" 1 "unverifiable key without OVERRIDE exits 1"
-grep -q "Could not verify the key" "$HOME/last_out.txt"
-check $? 0 "message names the verification failure and the TA override"
-[ ! -f "$HOME/.dtlab_env" ]
-check $? 0 "nothing stored without the override"
-[ ! -f "$HOME/dtlab/.key_override" ]
-check $? 0 "no override record on refusal"
-rc=$(run 'sk-proj-XXXXXXXXXXXXXXXXXXXXXXXX\nOVERRIDE\ny\ny\n\n' \
-     PATH="$HOME/bin:$PATH")
-check "$rc" 0 "typed OVERRIDE stores the unverified key and continues"
-grep -q "sk-proj-" "$HOME/.dtlab_env"
-check $? 0 "key stored on override"
-[ -s "$HOME/dtlab/.key_override" ]
-check $? 0 "override recorded with a timestamp (manifest picks it up)"
+printf '#!/usr/bin/env bash\nexit 7\n' > "$HOME/bin/hermes"
+chmod +x "$HOME/bin/hermes"
+rc=$(run '' PATH="$HOME/bin:$PATH")
+check "$rc" 1 "cancelled or failed OAuth exits 1"
+grep -q "sign-in did not complete" "$HOME/last_out.txt"
+check $? 0 "failed OAuth explains how to retry"
+[ ! -e "$HOME/dtlab/runs" ]
+check $? 0 "failed OAuth writes no run state"
 guard; rm -rf "${HOME:?}/bin"
-mkenv 0
-rm -f "$HOME/dtlab/.spend_limit_ack"
-rc=$(run 'n\n')
-check "$rc" 1 "refusing the spend-limit confirmation exits 1"
-grep -q "OpenAI Platform" "$HOME/last_out.txt"
-check $? 0 "refusal names where to set the limit"
-[ ! -f "$HOME/dtlab/.spend_limit_ack" ]
-check $? 0 "nothing recorded on refusal"
-rc=$(run 'y\ny\ny\n\n')
-check "$rc" 0 "confirming the spend limit proceeds"
-[ -s "$HOME/dtlab/.spend_limit_ack" ]
-check $? 0 "spend-limit ack recorded with a timestamp"
-rc=$(run 'y\ny\n\n')
-check "$rc" 0 "second start does not re-ask (one-time gate)"
-! grep -q "spend limit" "$HOME/last_out.txt"
-check $? 0 "no spend-limit prompt once recorded"
 
 echo "[30] C2.15: reproducibility pins + kit-commit freeze check"
 # The digest lives in .devcontainer/Dockerfile since 2026-08-04 (the

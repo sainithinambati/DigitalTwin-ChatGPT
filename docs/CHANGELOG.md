@@ -51,12 +51,12 @@ plan is `COURSE_PLAN_1WEEK.md`.
 11. **CAND compliance** — the agent actually follows the `CAND |` line
     format under the pinned Hermes/model; check the dry-run manifest's
     `candidates` and `warnings` fields.
-12. **Token/cost benchmark across tiers** — one full single-category
+12. **Token/usage benchmark across tiers** — one full single-category
     task under `gpt-5.6-terra` (reasoning `none` / `medium`) and
     `gpt-6-astra` (reasoning `low` / `medium`), repeated over 2–3
-    categories; record tokens, $,
-    wall-clock, success (TA_ONBOARDING work item). Sets the per-key cap
-    and validates the ~$20 spend-limit guidance.
+    categories; record tokens, normalized estimated cost,
+    wall-clock, success (TA_ONBOARDING work item) and validate that current
+    subscription limits support the exercise.
 13. **Category links** — spot-check the `amazon_url` browse-node links
     in `tasks_config.csv` still resolve to the intended categories on
     live amazon.in.
@@ -80,6 +80,22 @@ plan is `COURSE_PLAN_1WEEK.md`.
 
 Append every kit change and every observed deviation from the docs
 here, newest first, dated, with the files touched and the suites re-run.
+
+### 2026-09-17 — ChatGPT/Codex subscription authentication
+
+Replaced the public `openai-api` credential path with Hermes's
+`openai-codex` provider and OpenAI device-code OAuth. `dtlab-start` now
+stores no API key, clears inherited API credentials and endpoint overrides,
+validates owner-only `~/.hermes/auth.json`, and keeps the shared credential
+outside every per-run Hermes home and evidence path. Main and auxiliary
+calls explicitly pin medium reasoning. Active student, consent, protocol,
+course-plan, and TA documentation now describe subscription authentication
+instead of Platform projects, API credits, or spend-limit acknowledgments.
+
+Python validation (35 tests), Python compilation, shell syntax, and all
+OAuth/provider assertions in the start-flow suite passed locally. The five
+remaining local start-flow failures exercise Unix symlink semantics that are
+not available in this Windows checkout and remain covered by Linux CI.
 
 ### 2026-09-14 — OpenAI configuration and credential hardening
 

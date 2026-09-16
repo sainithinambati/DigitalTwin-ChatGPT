@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # student_start.sh — the ONLY command students need. Validates everything,
-# collects the API key on first run, and walks through the session.
+# authenticates the student's ChatGPT/Codex subscription on first run, and
+# walks through the session.
 #
 # Plan of record (COURSE_PLAN_1WEEK.md, research_protocol.md §1): with the
 # questionnaire-ablation factor ON, every agent runs the task set FOUR
@@ -221,7 +222,7 @@ make_hermes_home() {  # $1 = home dir, $2 = SOUL variant file, $3 = model id
   fi
   mkdir -p "$hh"
   cp "$soul" "$hh/SOUL.md"
-  sed -e "s|{{PROVIDER}}|${DTLAB_PROVIDER:-openai-api}|g" \
+  sed -e "s|{{PROVIDER}}|${DTLAB_PROVIDER:-openai-codex}|g" \
       -e "s|{{MODEL_ID}}|$model|g" "$tpl" > "$hh/config.yaml"
 }
 
@@ -240,6 +241,8 @@ make_hermes_home() {  # $1 = home dir, $2 = SOUL variant file, $3 = model id
 verify_hermes_config() {  # $1 = home dir, $2 = provider, $3 = model id
   grep -qF -- "$3" "$1/config.yaml" 2>/dev/null || return 1
   grep -qF -- "$2" "$1/config.yaml" 2>/dev/null || return 1
+  grep -qF -- 'reasoning_effort: "medium"' "$1/config.yaml" 2>/dev/null \
+    || return 1
 
   local eff
   eff="$(HERMES_HOME="$1" hermes config get model.default 2>/dev/null \
@@ -280,139 +283,91 @@ else
 fi
 echo "=============================================="
 
-# This kit intentionally uses OpenAI's first-party endpoint. In the pinned
-# Hermes release, the shorter provider name "openai" is an OpenRouter alias.
-# Fail closed if a stale or edited config would silently route elsewhere.
-if [ "${DTLAB_PROVIDER:-openai-api}" != "openai-api" ]; then
-  echo -e "${RED}ERROR: DTLAB_PROVIDER must be 'openai-api' for this kit."
+# This kit intentionally uses Hermes's ChatGPT/Codex subscription provider.
+# Fail closed if a stale or edited config would silently route through a
+# pay-per-token API key or another provider.
+if [ "${DTLAB_PROVIDER:-openai-codex}" != "openai-codex" ]; then
+  echo -e "${RED}ERROR: DTLAB_PROVIDER must be 'openai-codex' for this kit."
   echo -e "The configured value is '${DTLAB_PROVIDER:-<unset>}'. Tell a TA;"
   echo -e "nothing was started and no credential was read.${NC}"
   exit 1
 fi
 
-# 1. OpenAI API key. Stored ONLY in ~/.dtlab_env (chmod 600). This launcher
-#    parses the file as data and exports the key only to itself and Hermes; it
-#    is not sourced globally from .bashrc. Never echoed, never in shell history,
-#    never typed while the screen recorder could be running.
-ENVFILE="$HOME/.dtlab_env"
-if [ -L "$ENVFILE" ] || { [ -e "$ENVFILE" ] && [ ! -f "$ENVFILE" ]; }; then
-  echo -e "${RED}Refusing unsafe credential path $ENVFILE (it must be a"
-  echo -e "regular file, never a symlink). Remove it and re-run dtlab-start.${NC}"
+# 1. OpenAI Codex OAuth. The subscription route must never inherit a public
+# API credential or endpoint override from the shell. Hermes stores its
+# refreshable device-code credential in ~/.hermes/auth.json (mode 600).
+unset OPENAI_API_KEY OPENAI_BASE_URL
+CODEX_AUTH_HOME="$HOME/.hermes"
+CODEX_AUTH_FILE="$CODEX_AUTH_HOME/auth.json"
+
+codex_auth_present() {
+  [ -f "$CODEX_AUTH_FILE" ] || return 1
+  python3 - "$CODEX_AUTH_FILE" <<'PY'
+import json
+import sys
+
+try:
+    payload = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError):
+    raise SystemExit(1)
+
+found = False
+pool = payload.get("credential_pool")
+if isinstance(pool, dict):
+    entries = pool.get("openai-codex")
+    found = isinstance(entries, list) and any(
+        isinstance(entry, dict)
+        and isinstance(entry.get("access_token"), str)
+        and bool(entry["access_token"].strip())
+        for entry in entries
+    )
+providers = payload.get("providers")
+if not found and isinstance(providers, dict):
+    state = providers.get("openai-codex")
+    if isinstance(state, dict):
+        tokens = state.get("tokens", state)
+        found = (
+            isinstance(tokens, dict)
+            and isinstance(tokens.get("access_token"), str)
+            and bool(tokens["access_token"].strip())
+        )
+raise SystemExit(0 if found else 1)
+PY
+}
+
+if [ -L "$CODEX_AUTH_FILE" ] || \
+   { [ -e "$CODEX_AUTH_FILE" ] && [ ! -f "$CODEX_AUTH_FILE" ]; }; then
+  echo -e "${RED}Refusing unsafe Hermes OAuth credential path"
+  echo -e "$CODEX_AUTH_FILE (it must be a regular file, never a symlink)."
+  echo -e "Tell a TA; nothing was started.${NC}"
   exit 1
 fi
-if [ -f "$ENVFILE" ]; then
-  chmod 600 "$ENVFILE" || {
-    echo -e "${RED}Could not restrict $ENVFILE to owner-only access.${NC}"
-    exit 1
-  }
-  mapfile -t DTLAB_ENV_LINES < "$ENVFILE"
-  if [ "${#DTLAB_ENV_LINES[@]}" -ne 1 ]; then
-    echo -e "${RED}Refusing malformed $ENVFILE. It must contain exactly one"
-    echo -e "OPENAI_API_KEY assignment and no shell commands. Remove it and"
-    echo -e "re-run dtlab-start.${NC}"
-    exit 1
-  fi
-  if [[ "${DTLAB_ENV_LINES[0]}" =~ ^export[[:space:]]+OPENAI_API_KEY=([A-Za-z0-9._-]+)$ ]]; then
-    export OPENAI_API_KEY="${BASH_REMATCH[1]}"
-  else
-    echo -e "${RED}Refusing malformed $ENVFILE. It must contain exactly one"
-    echo -e "OPENAI_API_KEY assignment and no shell commands. Remove it and"
-    echo -e "re-run dtlab-start.${NC}"
-    exit 1
-  fi
-fi
+mkdir -p "$CODEX_AUTH_HOME"
+chmod 700 "$CODEX_AUTH_HOME" 2>/dev/null || true
 
-# Hermes honors OPENAI_BASE_URL. Do not allow an inherited override to send a
-# student's first-party OpenAI credential to a different host.
-unset OPENAI_BASE_URL
-
-if [ -n "${OPENAI_API_KEY:-}" ] &&
-   [[ ! "$OPENAI_API_KEY" =~ ^sk-[A-Za-z0-9._-]{17,}$ ]]; then
-  echo -e "${RED}The configured OPENAI_API_KEY is malformed. Remove"
-  echo -e "$ENVFILE (or fix the inherited variable) and re-run dtlab-start.${NC}"
-  exit 1
-fi
-if [ -z "${OPENAI_API_KEY:-}" ]; then
+if ! codex_auth_present; then
   echo ""
-  echo "  Your OpenAI API key (from YOUR OWN OpenAI API project, created per"
-  echo "  the setup checklist). Input is HIDDEN — nothing will appear as you"
-  echo "  paste. Never paste this key anywhere else; your personal monthly"
-  echo "  project budget (set in the Platform dashboard) is your cap."
-  read -rsp "  Key (sk-...): " KEY; echo ""
-  if [[ "$KEY" =~ ^sk-[A-Za-z0-9._-]{17,}$ ]]; then
-    # minimal live check BEFORE storing: a typo'd or revoked key must
-    # fail here, not mid-run on lab day
-    # Feed the Authorization header through curl's stdin config so the key is
-    # not exposed in the process command line.
-    CODE=$(curl --config - -sS -o /dev/null -w '%{http_code}' --max-time 15 \
-      "https://api.openai.com/v1/models" 2>/dev/null <<CURL_CONFIG
-header = "Authorization: Bearer $KEY"
-CURL_CONFIG
-    ) || CODE=""
-    case "$CODE" in
-      2*) ok "key verified against the OpenAI API." ;;
-      401|403)
-        echo -e "${RED}The OpenAI API rejected this key (HTTP $CODE)."
-        echo -e "Nothing was stored. Check the key in your OpenAI Platform dashboard"
-        echo -e "and re-run dtlab-start. If a bad key was stored earlier,"
-        echo -e "reset it with:  rm ~/.dtlab_env${NC}"
-        exit 1 ;;
-      *)
-        # FAIL CLOSED (audit 8.5): an unverifiable key is stored only on
-        # an explicit, recorded TA override — never silently
-        echo ""
-        echo -e "${YEL}Could not verify the key against the OpenAI API"
-        echo -e "(HTTP '${CODE:-none}') — check the codespace's network"
-        echo -e "and retry. A TA can override: type OVERRIDE to store the"
-        echo -e "key unverified (the override is recorded); anything else"
-        echo -e "stores nothing.${NC}"
-        read -rp "> " OV
-        if [ "$OV" = "OVERRIDE" ]; then
-          date -u +%FT%TZ > "$HOME/dtlab/.key_override"
-          note "unverified key stored on TA override (recorded in the manifest)"
-        else
-          echo -e "${RED}Nothing stored — re-run dtlab-start when the"
-          echo -e "network is back (or with a TA for the override).${NC}"
-          exit 1
-        fi ;;
-    esac
-    umask 077
-    ENV_TMP=$(mktemp "${ENVFILE}.tmp.XXXXXX") || exit 1
-    chmod 600 "$ENV_TMP"
-    if ! printf 'export OPENAI_API_KEY=%s\n' "$KEY" > "$ENV_TMP"; then
-      rm -f "$ENV_TMP"
-      exit 1
-    fi
-    mv -f -- "$ENV_TMP" "$ENVFILE"
-    export OPENAI_API_KEY="$KEY"
-    ok "API key stored (600-permission env file; your personal spend limit applies)."
-  else
-    # a malformed key must stop the flow HERE — never continue into the
-    # run machinery on a bad credential
-    echo -e "${RED}That does not look like an OpenAI API key (sk-...)."
-    echo -e "Nothing was stored — re-run dtlab-start and paste the key from"
-    echo -e "your OpenAI Platform dashboard. (Stored-key reset: rm ~/.dtlab_env)${NC}"
+  echo "  Sign in to OpenAI through Hermes using the device code shown next."
+  echo "  This uses your ChatGPT/Codex subscription; no API key is needed."
+  echo "  Open the displayed URL, enter the code, and return here."
+  if ! HERMES_HOME="$CODEX_AUTH_HOME" \
+       hermes auth add openai-codex --type oauth; then
+    echo -e "${RED}OpenAI Codex sign-in did not complete. Nothing was"
+    echo -e "started. Re-run dtlab-start and complete the device login.${NC}"
     exit 1
   fi
-else
-  ok "OpenAI API key present."
+  if ! codex_auth_present; then
+    echo -e "${RED}Hermes returned from sign-in but did not store an"
+    echo -e "openai-codex credential. Nothing was started; tell a TA.${NC}"
+    exit 1
+  fi
 fi
-# Spend-limit gate (audit 8.4): the README's claim is now a RECORDED
-# one-time confirmation — the ack lands in the manifest at pack time.
-SPENDACK="$HOME/dtlab/.spend_limit_ack"
-if [ ! -f "$SPENDACK" ]; then
-  read -rp "  OpenAI project monthly budget (~\$20) set in the Platform dashboard? [y/N] " SL
-  case "$SL" in
-    [yY]*)
-      date -u +%FT%TZ > "$SPENDACK"
-      ok "spend-limit confirmation recorded (asked once)" ;;
-    *)
-      echo -e "${RED}Set it now (OpenAI Platform > project > Limits;"
-      echo -e "takes ~2 minutes — it caps what a runaway session could"
-      echo -e "cost YOU), then re-run dtlab-start.${NC}"
-      exit 1 ;;
-  esac
-fi
+chmod 600 "$CODEX_AUTH_FILE" || {
+  echo -e "${RED}Could not restrict the Hermes OAuth credential file to"
+  echo -e "owner-only access. Nothing was started.${NC}"
+  exit 1
+}
+ok "OpenAI Codex subscription authentication present (no API key)."
 
 # ---- SANDBOX MODE: soft gates, sandbox SOUL, stamped for exclusion ----
 if [ "$SANDBOX" = "1" ]; then
@@ -482,7 +437,7 @@ if [ "$SANDBOX" = "1" ]; then
   pin_gate "$SBTIER"
   make_hermes_home "$RUN_HOME" "$HOME/dtlab/soul/SOUL_sandbox.md" \
     "$MODEL_ID" || exit 1
-  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
+  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-codex}" \
     "$MODEL_ID" || config_mismatch_abort
   echo ""
   echo -e "${YEL}SANDBOX RUN — practice store only (books.toscrape.com)."
@@ -1340,7 +1295,7 @@ if [ "$BOOTSTRAP_RUN" = "1" ]; then
   RUN_HOME="$RUNSDIR/bootstrap/hermes_home"
   make_hermes_home "$RUN_HOME" "$HOME/dtlab/soul/SOUL_bootstrap.md" \
     "$MODEL_ID" || exit 1
-  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
+  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-codex}" \
     "$MODEL_ID" || config_mismatch_abort
 elif [ -n "$RUN" ]; then
   case "$COND" in
@@ -1352,13 +1307,13 @@ elif [ -n "$RUN" ]; then
   if [ -d "$RUN_HOME" ]; then
     # crash-resume: refresh SOUL + config in place, keep the transcripts
     make_hermes_home "$RUN_HOME" "$SOUL_SRC" "$MODEL_ID" || exit 1
-    verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
+    verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-codex}" \
       "$MODEL_ID" || config_mismatch_abort
   else
     HH_STAGE="$RUNSDIR/.pending_hermes_home"
     rm -rf "$HH_STAGE"
     make_hermes_home "$HH_STAGE" "$SOUL_SRC" "$MODEL_ID" || exit 1
-    verify_hermes_config "$HH_STAGE" "${DTLAB_PROVIDER:-openai-api}" \
+    verify_hermes_config "$HH_STAGE" "${DTLAB_PROVIDER:-openai-codex}" \
       "$MODEL_ID" || { rm -rf "$HH_STAGE"; config_mismatch_abort; }
     mkdir -p "$RUNSDIR/run$RUN"
     mv "$HH_STAGE" "$RUN_HOME"
@@ -1372,7 +1327,7 @@ else
   SOUL_SRC="$HOME/dtlab/soul/SOUL.md"
   [ -f "$SOUL_SRC" ] || SOUL_SRC="$WS/SOUL.md"
   make_hermes_home "$RUN_HOME" "$SOUL_SRC" "$MODEL_ID" || exit 1
-  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-api}" \
+  verify_hermes_config "$RUN_HOME" "${DTLAB_PROVIDER:-openai-codex}" \
     "$MODEL_ID" || config_mismatch_abort
 fi
 # run state is written HERE — every gate above has passed, so a refused

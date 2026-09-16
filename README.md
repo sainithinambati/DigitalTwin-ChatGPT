@@ -57,18 +57,16 @@ computer with one click.
 **Tonight — before class:**
 
 1. **Three accounts, if you don't already have them:** [GitHub](https://github.com/join) ·
-   [OpenAI Platform](https://platform.openai.com) (create a project API key,
-   and set a project spending limit while you're there — it's your own money) ·
+   a ChatGPT account with a plan that includes Codex ·
    your own real Amazon India account (its order history is half of what
    makes your agent yours).
 2. **Copy the lab:** on this page, click green **Code** → **Codespaces**
    tab → **Create codespace on main** — that builds your own private
    copy automatically. Wait for the terminal to print `Setup complete.`
    before typing anything.
-3. **Add your key:** the first time you run `dtlab-start` (below), it
-   asks for your API key directly — input is hidden as you paste, and it
-   is checked against OpenAI before it's saved. Never paste your key
-   anywhere else.
+3. **Connect OpenAI:** the first time you run `dtlab-start` (below),
+   Hermes shows an OpenAI device-login URL and code. Complete that login
+   with your ChatGPT account. No API key or Platform credits are needed.
 4. **Amazon prep, inside the Lab Desktop** (Ports tab → port `6080` →
    Open in Browser): sign in, then Accounts & Lists → Browsing History →
    gear icon → **Pause History → 1 day** → Remove all items from view.
@@ -400,37 +398,27 @@ via the CSV's `constraint` column → a `[CONSTRAINT]` flag in the persona
 file → SOUL.md's constraints-always-win rule, so no item codes are ever
 hard-coded anywhere.
 
-## OpenAI API configuration
+## OpenAI Codex subscription configuration
 
 The exact model/provider mapping and migration notes are documented in
 [`docs/OPENAI_MIGRATION.md`](docs/OPENAI_MIGRATION.md).
 
-- **Each student uses their own OpenAI API account, project, and API key**
-  (created as Monday-evening homework per the LMS setup checklist:
-  Platform account, billing, a small credit purchase, a project **monthly
-  spend limit of ~$20**, then one project API key). Rate limits are therefore
-  per-student project — ~80 concurrent agents share nothing. Verify the
-  selected models' live project limits during the T-21 dry run.
+- **Each student signs into Hermes with their own ChatGPT/Codex
+  subscription.** The `openai-codex` provider uses device-code OAuth; it
+  does not require an OpenAI Platform project, API key, prepaid credits, or
+  project spending limit. Usage remains subject to the signed-in account's
+  current Codex plan limits.
 - Provider and model are configured **per run, not interactively**:
   `dtlab-start` generates each run's `$HERMES_HOME/config.yaml` from
   `provisioning/hermes_config.template.yaml` with the pinned model ID
   for that run's tier, verifies it, and fails closed on any mismatch —
-  no `hermes setup` provider step is relied on. `dtlab-start` collects
-  each student's
-  key on first run — silently (input hidden, so it can never appear in a
-  screen recording), verified against the OpenAI API model-list endpoint
-  with Bearer authentication (fail-closed; a
-  network failure needs a typed TA `OVERRIDE`, which is recorded),
-  stored only in a 600-permission `~/.dtlab_env` file,
-  and redacted from any packed log by `dtlab-pack`. A one-time
-  confirmation that the ~$20 spend limit is set is recorded and packed.
-- **Model policy: direct OpenAI API models only, all settings at defaults** (no
-  temperature or sampling overrides — agent runs are interactive tool-use
-  sessions, not elicitation calls). Budget guidance must be confirmed in
-  the T-21 dry run with `capture_tokens.py`; the recommended project spend
-  limit is **$20** pending that benchmark. OpenAI prompt caching helps
-  because the persona + history are re-read each run. The student's
-  project spend limit is the hard cap they control end to end.
+  no `hermes setup` provider step is relied on. On first use,
+  `dtlab-start` launches Hermes's device-code login. Hermes stores the
+  credential in owner-only `~/.hermes/auth.json`; it is never copied into
+  per-run homes, evidence, Git, or recordings.
+- **Model policy: OpenAI through the Codex subscription provider, with
+  medium reasoning pinned explicitly** for the main agent and auxiliary
+  calls. No temperature or sampling overrides are applied.
 - **Model tier is FIXED, not a factor** (plan of record, 7 Sept): every
   run uses the economy tier (`gpt-5.6-terra`). The earlier design
   crossed grounding with an economy/frontier tier factor over two lab
@@ -440,10 +428,8 @@ The exact model/provider mapping and migration notes are documented in
   written into each run's own Hermes configuration by `dtlab-start`
   (which refuses to launch on any mismatch) and recorded per run in
   the manifest (research_protocol.md §1).
-- Students verify their project spend limit on their own OpenAI Platform
-  **dashboard** during the setup checklist; pre-flight asks for
-  confirmation, and cost questions are answered from each student's own
-  usage view.
+- Students complete the one-time OpenAI device login before the first run.
+  Evidence cost fields are normalized estimates, not subscription charges.
 - **Both grounding sources are ablated independently**
   (`DTLAB_PERSONA_FACTOR=1`): the agent runs the task set three times —
   `persona` (questionnaire + purchase profile), `ablated` (purchase
@@ -461,14 +447,15 @@ The exact model/provider mapping and migration notes are documented in
 
 1. Monday (Session 6): GitHub account + codespace created in class;
    that evening's homework (assigned Monday, due 22:00): consent, the
-   115-item Form (~30 min, phone is fine), own OpenAI API account/project
-   + API key + $20 project spend limit. Personas are generated centrally
+   115-item Form (~30 min, phone is fine), and a ChatGPT plan with Codex
+   access. Personas are generated centrally
    overnight.
 2. Monday–Tuesday, in class: create/log into GitHub → **Create
    codespace** (~4–6 min first build; instant with prebuilds) → open the
    forwarded **Lab Desktop** port (noVNC; per-codespace password printed
-   in the terminal — NEVER set the port to Public) → Tuesday: API key
-   in, persona zip in, pre-flight green, sandbox smoke run watched.
+   in the terminal — NEVER set the port to Public) → Tuesday: OpenAI
+   device login complete, persona zip in, pre-flight green, sandbox smoke
+   run watched.
    To paste from the host into that Linux desktop, use noVNC's clipboard
    side panel, then press **Ctrl+V** inside Chromium (**Cmd+V does not
    apply** inside the remote desktop).
@@ -671,9 +658,9 @@ is pre-baked by `.devcontainer/setup.sh` (Codespaces, primary) or
       (T-21): build, persona generation, `dtlab-shop`, `/browser connect`,
       Bootstrap, one full task, `dtlab-pack` — working the T-21 dry-run
       list at the top of `docs/CHANGELOG.md`
-- [ ] Confirm the student-key model end-to-end: every student's own OpenAI
-      API account/project, one key, ~$20 monthly project spend limit
-      (Monday homework); 2–3 course-owned spare keys staged for setup casualties
+- [ ] Confirm the subscription-auth model end-to-end: every student's
+      ChatGPT plan includes Codex access, device login succeeds in Hermes,
+      and current plan limits support the exercise
 - [ ] LMS: assignment sheet (pseudonym + per-day grounding order + tier order + pair — one make_counterbalance.py output), evidence upload slot
 - [ ] Synthetic persona pack for opt-outs (fictional Form row — generate
       once, reuse; doubles as the flagged-account sandbox path)
@@ -712,17 +699,15 @@ is pre-baked by `.devcontainer/setup.sh` (Codespaces, primary) or
 
 ## Troubleshooting (lab week)
 
-- **Wrong or revoked API key** — `dtlab-start` verifies the key against
-  the OpenAI API before storing it and refuses rejected keys on the
-  spot. If a stale key is already stored (agent runs fail with auth
-  errors), reset it and re-enter:
+- **Expired or revoked OpenAI login** — renew the Hermes Codex OAuth
+  credential using the global auth home:
 
   ```bash
-  rm ~/.dtlab_env
+  HERMES_HOME="$HOME/.hermes" hermes auth add openai-codex --type oauth
   ```
 
-  then run `dtlab-start` again. Rebuilding the container also clears the
-  key by design — re-entering it is expected, not a fault.
+  Then run `dtlab-start` again. Never paste an API key into the repository
+  or a run configuration.
 
 - **"Stale prebuild" refusal at pre-flight** — the codespace was built
   from a commit older than the course freeze (`DTLAB_EXPECTED_COMMIT`).

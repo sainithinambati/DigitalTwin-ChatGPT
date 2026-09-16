@@ -126,10 +126,10 @@ concrete machinery, so you recognize it when you see it:
   the quarantine root (`~/dtlab/quarantine/verdicts/`), outside every
   path an agent run receives, so a Friday agent
   cannot read any judgment.
-- **Secrets:** the API key is collected hidden, lives only in a
-  600-permission `~/.dtlab_env`, and `dtlab-pack` content-redacts key
-  patterns from every packed text file (see `redaction_report` in each
-  manifest — skim it when grading).
+- **Secrets:** Hermes's OpenAI device-login credential lives only in the
+  owner-only `~/.hermes/auth.json`, outside every run home and evidence
+  path. `dtlab-pack` still content-redacts token/key patterns defensively
+  (see `redaction_report` in each manifest — skim it when grading).
 - **Supply chain:** installers are checksum-pinned; builds refuse to run
   unpinned (section below).
 - **Agent containment:** add-to-cart only, amazon.in only, CAPTCHA halt,
@@ -223,13 +223,13 @@ concrete machinery, so you recognize it when you see it:
       `none` and `medium`, and `gpt-6-astra` at reasoning effort `low`
       and `medium`** — and
       repeat over 2–3 different categories so the numbers average out.
-      Record per run: input/output/cache tokens and $ cost (OpenAI
-      Platform usage view per project), wall-clock time, and task success.
+      Record per run: input/output/cache tokens, normalized estimated cost,
+      wall-clock time, and task success. Do not treat estimates as subscription
+      billing records.
       Multiply out to tasks-per-student × N=161 (×2 if the ablation
-      factor is on) → this sets the recommended personal spend limit,
-      validates the ~$20
-      spend-limit guidance for the four-run 2×2, and gives the professor the real numbers for the
-      model-tier decision. Note: the course runs at model defaults —
+      factor is on) → this validates the expected subscription usage for
+      the four-run 2×2 and gives the professor the real numbers for the
+      model-tier decision. Note: the course pins medium reasoning —
       the thinking-on/off variants are measured here for cost
       information, not as a change to the run policy.
 - [ ] Turn this repo into a **template repo** (Settings → Template
@@ -254,14 +254,13 @@ concrete machinery, so you recognize it when you see it:
       `tools/log_human_session.py` (cart-click selector, breadcrumb
       category selector, URL parsing) and `tools/capture_cart.py`
       (SELECTORS dict is the single patch point).
-- [ ] **API-account setup checklist (Monday homework — assigned in
+- [ ] **ChatGPT/Codex setup checklist (Monday homework — assigned in
       Session 6, due Monday 22:00):** publish the
-      LMS checklist — create your own OpenAI Platform account/project,
-      complete billing with a small credit purchase, set a project **monthly
-      spend limit of ~$20** in project settings, generate one API key,
-      store it only where dtlab-start puts it. Verify completion against
-      the roster at Tuesday's pre-flight (checkpoint 2); hold 2–3 course-owned
-      spare keys for failed setups. Rate limits are per project, so ~80
+      LMS checklist — confirm that the student's ChatGPT plan includes
+      Codex access. At Tuesday's pre-flight, `dtlab-start` launches the
+      one-time OpenAI device login. No API key, Platform billing project,
+      prepaid credit, or course-owned spare key is required. Current limits
+      are per signed-in subscription, so ~80
       concurrent agents share nothing.
 - [ ] Build the LMS assignment sheet BEFORE the lab week: pseudonym,
       section, self-selected pair, per-day grounding order (Thursday
@@ -512,7 +511,7 @@ Never set `DTLAB_ALLOW_UNPINNED=1` for anything students will use — it
 exists only for throwaway test builds.
 
 ## Things you must NOT do
-- Commit any student data or API keys (`.gitignore` blocks the obvious
+- Commit any student data, OAuth credentials, or API keys (`.gitignore` blocks the obvious
   paths — think before you `git add -f`).
 - Weaken the bias quarantine (`~/dtlab/quarantine/` vs agent
   workspace), the per-run Hermes-home treatment delivery, the

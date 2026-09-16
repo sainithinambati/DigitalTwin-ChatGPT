@@ -223,7 +223,7 @@ for i in (1, 2, 3, 4):
     with open(f"{hh}/SOUL.md", "w") as f:
         f.write(f"# {cond} soul variant\n")
     with open(f"{hh}/config.yaml", "w") as f:
-        f.write(f'model:\n  provider: "openai-api"\n  id: "{model}"\n')
+        f.write(f'model:\n  provider: "openai-codex"\n  id: "{model}"\n')
     with open(f"{hh}/sessions/run{i}.jsonl", "w") as f:
         f.write('{"run": %d}\n' % i)
     for name, src in (("soul_sha256.txt", f"{hh}/SOUL.md"),

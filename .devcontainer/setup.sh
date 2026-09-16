@@ -76,9 +76,9 @@ echo "== [1/5] Lab layout (local, runs before anything that needs network) =="
 # tree) and ~/dtlab is a symlink to it — every existing path keeps working
 # and a mid-week "Rebuild Container" no longer erases the week's evidence.
 # On the VM route (no /workspaces) the root falls back to $HOME/dtlab.
-# The API key file ~/.dtlab_env stays in $HOME BY DESIGN: it must not
-# survive into a shared or persisted layer; re-entering the key after a
-# rebuild is correct behavior.
+# Hermes keeps the student's OpenAI device-login credential in
+# ~/.hermes/auth.json, outside the workspace. It must never be copied into
+# the repository or a per-run home; a rebuild may require signing in again.
 DTLAB_ROOT="${DTLAB_ROOT:-}"
 if [ -z "$DTLAB_ROOT" ]; then
   if [ -d /workspaces ] && [ -w /workspaces ]; then

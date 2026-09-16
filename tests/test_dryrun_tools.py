@@ -29,16 +29,18 @@ pack_evidence = load_tool("pack_evidence")
 
 
 class HermesConfigTemplateTests(unittest.TestCase):
-    def test_explicit_openai_provider_uses_bare_model_ids(self):
+    def test_codex_oauth_provider_uses_bare_model_ids_and_medium_reasoning(self):
         template = (REPO / "provisioning" /
                     "hermes_config.template.yaml").read_text(
                         encoding="utf-8")
-        rendered = template.replace("{{PROVIDER}}", "openai-api").replace(
+        rendered = template.replace("{{PROVIDER}}", "openai-codex").replace(
             "{{MODEL_ID}}", "gpt-5.6-terra")
 
         self.assertIn('default: "gpt-5.6-terra"', rendered)
-        self.assertIn('provider: "openai-api"', rendered)
-        self.assertNotIn('"openai-api/gpt-5.6-terra"', rendered)
+        self.assertIn('provider: "openai-codex"', rendered)
+        self.assertNotIn('"openai-codex/gpt-5.6-terra"', rendered)
+        self.assertIn('agent:\n  # The bonus-assignment', rendered)
+        self.assertEqual(rendered.count('reasoning_effort: "medium"'), 6)
         self.assertEqual(rendered.count('model: "gpt-5.6-terra"'), 5)
 
 

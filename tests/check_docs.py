@@ -37,8 +37,8 @@ ALLOWLIST = {
 # never scanned: private/ holds the instructor's untracked working
 # material (gitignored, never in the repo the TA receives), and the
 # changelog is an operational record the trial run appends to
-SKIP = ("private/", "docs/CHANGELOG.md", "CLAUDE_CODE_HANDOVER",
-        ".venv/", "node_modules/")
+SKIP = ("private/", "output/", "tmp/", "docs/CHANGELOG.md",
+        "CLAUDE_CODE_HANDOVER", ".venv/", "node_modules/")
 
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 
